@@ -27,7 +27,7 @@ By clicking on configure you will be granted with a configuration window which y
 
 - If mapping is selected as Manual Mapping then the injector will map the dll file itself to the target process, so the dll won't be seen in the module list etc. (Can still be found though)
 - Functions ending with <b>(IMP)</b> are functions which we are invoking ourselves.
-- Unlink from peb option basically removes the dll entry from the dll list, <b>useless if manually mapped since it won't be in there anyways</b>.
+- Unlink from peb option basically removes the dll entry from the loaded dll list of the target process, <b>useless if manually mapped since it won't be in there anyways</b>.
 - Delete PE header option basically deletes the entire PE header <b>after</b> injection from the target process memory.
 
 ### Process Selection
