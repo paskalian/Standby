@@ -9,6 +9,8 @@ namespace Standby
     ImFont* RobotoLarge = nullptr;
     ImFont* RobotoSmall = nullptr;
 
+    bool ProcessChanged = false;
+
 	VOID Render()
 	{
         static ImGuiViewport* viewport = ImGui::GetMainViewport();
@@ -147,7 +149,10 @@ namespace Standby
                 {
                     pSelectedProcess->BaseThreadId = GetBaseThread(pSelectedProcess->Pid);
                     if (Standby::HandleRetrieve())
+                    {
                         Debug("[*] Process handle retrieved successfully.");
+                        ProcessChanged = true;
+                    }
                     else
                         Debug("[*] Process handle couldn't be retrieved.");
 
@@ -169,9 +174,72 @@ namespace Standby
             ImGui::BeginChild("ProcessInformationChild", ImVec2(viewport->Size.x / 2 - 10.0f, viewport->Size.y - 90.0f), true);
             const ImVec2 ProcessInformationChildSize = ImGui::GetItemRectSize();
 
+            static PROCESSINFORMATION_DETAILED DetailedProcessInfo = {};
             if (pSelectedProcess)
             {
-                ImGui::Text("WEY");
+                if (ProcessChanged)
+                {
+                    if (DetailedProcessInfo.BasicInfo.Pid)
+                        DetailedProcessInfo.ModulesLoaded.clear();
+                    DetailedProcessInfo = GetDetailedProcessInformation(*pSelectedProcess);
+
+                    ProcessChanged = false;
+                }
+
+                if (DetailedProcessInfo.BasicInfo.Pid)
+                {
+                    ImGui::PushFont(RobotoLarge);
+                    ImGui::Text("%s ", DetailedProcessInfo.BasicInfo.Name.c_str());
+                    ImGui::PopFont();
+                    ImGui::TextWrapped("(%s)", DetailedProcessInfo.Path.c_str());
+
+                    ImGui::Spacing(); ImGui::Spacing(); ImGui::Spacing();
+
+                    ImGui::Separator();
+
+                    ImGui::Spacing(); ImGui::Spacing(); ImGui::Spacing();
+                    
+                    ImGui::PushFont(RobotoSmall);
+                    ImGui::TextWrapped("These values are updated once when an handle was opened, they are there to provide a basic overlook at the target process.");
+                    ImGui::PopFont();
+
+                    ImGui::Spacing(); ImGui::Spacing();
+
+                    ImGui::PushFont(RobotoLarge);
+                    ImGui::Text("Process Id: %i", DetailedProcessInfo.BasicInfo.Pid);
+                    ImGui::Text("Parent Process Id: %i", DetailedProcessInfo.ParentPid);
+                    ImGui::Text("Main Thread Id: %i", DetailedProcessInfo.BasicInfo.BaseThreadId);
+                    ImGui::Text("Thread Count: %i", DetailedProcessInfo.ThreadCount);
+
+                    ImGui::Spacing(); ImGui::Spacing(); ImGui::Spacing();
+
+                    ImGui::Text("Modules");
+
+                    ImGui::PopFont();
+
+                    ImGui::Spacing(); ImGui::Spacing(); ImGui::Spacing();
+
+                    ImGui::Separator();
+
+                    for (int i = 0; i < DetailedProcessInfo.ModulesLoaded.size(); i++)
+                    {
+                        ImGui::Spacing(); ImGui::Spacing(); ImGui::Spacing();
+
+                        MODULEINFORMATION& IdxModule = DetailedProcessInfo.ModulesLoaded.at(i);
+
+                        ImGui::PushFont(RobotoLarge);
+                        ImGui::Text("%s", IdxModule.ModuleName.c_str());
+                        ImGui::PopFont();
+                        ImGui::TextWrapped("(%s)", IdxModule.ModulePath.c_str());
+                        ImGui::Text("Base: 0x%X", IdxModule.ModBaseAddr);
+                        ImGui::Text("Size: 0x%X", IdxModule.ModSize);
+
+                        ImGui::Spacing(); ImGui::Spacing(); ImGui::Spacing();
+
+                        ImGui::Separator();
+                    }
+                    
+                }
             }
 
             ImGui::EndChild();

@@ -20,6 +20,23 @@ struct PROCESSINFORMATION
 	DWORD BaseThreadId;
 };
 
+struct MODULEINFORMATION
+{
+	std::string ModuleName;
+	std::string ModulePath;
+	UINT_PTR ModBaseAddr;
+	UINT_PTR ModSize;
+};
+
+struct PROCESSINFORMATION_DETAILED
+{
+	PROCESSINFORMATION BasicInfo;
+	std::string Path;
+	DWORD ParentPid;
+	DWORD ThreadCount;
+	std::vector<MODULEINFORMATION> ModulesLoaded;
+};
+
 struct DLLINFORMATION
 {
 	std::string Name;
@@ -51,6 +68,8 @@ namespace Standby
 	BOOLEAN Init();
 	BOOLEAN GetAllProcesses();
 	DWORD GetBaseThread(DWORD Pid);
+
+	PROCESSINFORMATION_DETAILED GetDetailedProcessInformation(PROCESSINFORMATION& ProcessInfo);
 
 	BOOLEAN InsertDll();
 

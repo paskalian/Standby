@@ -9,5 +9,7 @@ namespace Standby
 	extern ImFont* RobotoLarge;
 	extern ImFont* RobotoSmall;
 
+	extern bool ProcessChanged;
+
 	VOID Render();
 }

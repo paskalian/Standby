@@ -89,7 +89,7 @@ namespace Standby
 
 	DWORD GetBaseThread(DWORD Pid)
 	{
-		Standby::Debug("Getting base thread.");
+		Standby::Debug("[*] Getting base thread.");
 
 		HANDLE hSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, Pid);
 
@@ -101,6 +101,63 @@ namespace Standby
 		CloseHandle(hSnapshot);
 
 		return ThreadEntry.th32ThreadID;
+	}
+
+	PROCESSINFORMATION_DETAILED GetDetailedProcessInformation(PROCESSINFORMATION& ProcessInfo)
+	{
+		PROCESSINFORMATION_DETAILED DetailedInfo;
+
+		DetailedInfo.BasicInfo = ProcessInfo;
+
+		CHAR PathBuffer[MAX_PATH]{};
+		DWORD PathSize = MAX_PATH;
+		QueryFullProcessImageNameA(ProcessHandle, 0, PathBuffer, &PathSize);
+
+		DetailedInfo.Path = PathBuffer;
+
+		PROCESSENTRY32 ProcEntry;
+		ProcEntry.dwSize = sizeof(PROCESSENTRY32);
+
+		HANDLE hSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, DetailedInfo.BasicInfo.Pid);
+
+		Process32First(hSnapshot, &ProcEntry);
+
+		DetailedInfo.ParentPid = ProcEntry.th32ParentProcessID;
+		DetailedInfo.ThreadCount = ProcEntry.cntThreads;
+
+		CloseHandle(hSnapshot);
+
+		MODULEENTRY32 ModEntry;
+		ModEntry.dwSize = sizeof(MODULEENTRY32);
+
+		hSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPMODULE, DetailedInfo.BasicInfo.Pid);
+
+		Module32First(hSnapshot, &ModEntry);
+		do
+		{
+			MODULEINFORMATION ModInfo;
+			
+			CHAR Buffer[MAX_PATH]{};
+			size_t NumberOfCharConverted = 0;
+			wcstombs_s(&NumberOfCharConverted, Buffer, ModEntry.szModule, MAX_PATH);
+
+			ModInfo.ModuleName = Buffer;
+
+			memset(Buffer, 0, MAX_PATH);
+			wcstombs_s(&NumberOfCharConverted, Buffer, ModEntry.szExePath, MAX_PATH);
+
+			ModInfo.ModulePath = Buffer;
+
+			ModInfo.ModBaseAddr = (UINT_PTR)ModEntry.modBaseAddr;
+			ModInfo.ModSize = ModEntry.modBaseSize;
+
+
+			DetailedInfo.ModulesLoaded.push_back(ModInfo);
+		} while (Module32Next(hSnapshot, &ModEntry));
+
+		CloseHandle(hSnapshot);
+
+		return DetailedInfo;
 	}
 
 	BOOLEAN InsertDll()
