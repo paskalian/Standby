@@ -25,10 +25,10 @@ The Standby DLL injector consists of 4 parts;
 ### Configuring
 By clicking on configure you will be granted with a configuration window which you can change the program behaviour from. In here you can change which functions or methods will be used and which actions will be taken by the program while process selection and injection.
 
-<p>If mapping is selected as Manual Mapping then the injector will map the dll file itself to the target process, so the dll won't be seen in the module list etc. (Can still be found though)</p>
-<p>Functions ending with <b>(IMP)</b> are functions which we are invoking ourselves.</p>
-<p>Unlink from peb option basically removes the dll entry from the dll list, <b>useless if manually mapped since it won't be in there anyways</b>.</p>
-<p>Delete PE header option basically deletes the entire PE header <b>after</b> injection from the target process memory.</p>
+- If mapping is selected as Manual Mapping then the injector will map the dll file itself to the target process, so the dll won't be seen in the module list etc. (Can still be found though)
+- Functions ending with <b>(IMP)</b> are functions which we are invoking ourselves.
+- Unlink from peb option basically removes the dll entry from the dll list, <b>useless if manually mapped since it won't be in there anyways</b>.
+- Delete PE header option basically deletes the entire PE header <b>after</b> injection from the target process memory.
 
 ### Process Selection
 
