@@ -440,12 +440,11 @@ namespace Standby
             ImGui::Checkbox("Unlink From PEB", &UnlinkFromPeb);
             ImGui::Checkbox("Delete PE Header", &DeletePEHeader);
 
-            ImGui::End();
-        }
+            ImGui::Spacing(); ImGui::Spacing(); ImGui::Spacing();
 
-        if (bAbout)
-        {
-            ImGui::Begin("About", (bool*)&bAbout, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_AlwaysAutoResize);
+            ImGui::Separator();
+
+            ImGui::Spacing(); ImGui::Spacing(); ImGui::Spacing();
 
             ImGui::Text("Dynamic Load Library (DLL) Injector");
             if (ImGui::IsItemHovered())

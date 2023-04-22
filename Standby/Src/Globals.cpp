@@ -4,7 +4,6 @@ namespace Standby
 {
 	HWND* pMainWnd = nullptr;
 	BOOLEAN bMainLoop = TRUE;
-	BOOLEAN bAbout = FALSE;
 
 	BOOLEAN bSelectProcess = FALSE;
 	BOOLEAN bSelectProcess_Confirm = FALSE;

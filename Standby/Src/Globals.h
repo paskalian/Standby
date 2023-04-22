@@ -47,7 +47,6 @@ namespace Standby
 {
 	extern HWND* pMainWnd;
 	extern BOOLEAN bMainLoop;
-	extern BOOLEAN bAbout;
 	
 	extern BOOLEAN bSelectProcess;
 	extern BOOLEAN bSelectProcess_Confirm;
