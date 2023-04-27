@@ -27,6 +27,9 @@ namespace Standby
 
 		static const HMODULE NtdllModule = GetModuleHandleA("NTDLL.DLL");
 		fNtOpenProcess = (tNtOpenProcess)GetProcAddress(NtdllModule, "NtOpenProcess");
+		fNtQuerySystemInformation = (tNtQuerySystemInformation)GetProcAddress(NtdllModule, "NtQuerySystemInformation");
+		fNtQueryObject = (tNtQueryObject)GetProcAddress(NtdllModule, "NtQueryObject");
+		fNtDuplicateObject = (tNtDuplicateObject)GetProcAddress(NtdllModule, "ZwDuplicateObject");
 
 		fNtAllocateVirtualMemory = (tNtAllocateVirtualMemory)GetProcAddress(NtdllModule, "NtAllocateVirtualMemory");
 		fNtFreeVirtualMemory = (tNtFreeVirtualMemory)GetProcAddress(NtdllModule, "ZwFreeVirtualMemory");

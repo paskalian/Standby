@@ -380,7 +380,7 @@ namespace Standby
 
             ImGui::Spacing(); ImGui::Spacing(); ImGui::Spacing();
 
-            static const char* HandleRetrieveModes[] = { "OpenProcess", "NtOpenProcess", "NtOpenProcess (IMP)", /*"Hijack Handle"*/ };
+            static const char* HandleRetrieveModes[] = { "OpenProcess", "NtOpenProcess", "NtOpenProcess (IMP)", "Hijack Handle" };
            
             ImGui::Text("Handle Retrieve");
             ImGui::Combo("##HandleRetrieveMode", &HandleRetrieveMode, HandleRetrieveModes, IM_ARRAYSIZE(HandleRetrieveModes));
