@@ -25,6 +25,7 @@ The Standby DLL injector consists of 4 parts;
 ### Configuring
 By clicking on configure you will be granted with a configuration window which you can change the program behaviour from. In here you can change which functions or methods will be used and which actions will be taken by the program while process selection and injection.
 
+- If handle retrieval is selected as Handle Hijacking then the injector will hijack the handle instead of opening one itself.
 - If mapping is selected as Manual Mapping then the injector will map the dll file itself to the target process, so the dll won't be seen in the module list etc. (Can still be found though)
 - Functions ending with <b>(IMP)</b> are functions which we are invoking ourselves.
 - Unlink from peb option basically removes the dll entry from the loaded dll list of the target process, <b>useless if manually mapped since it won't be in there anyways</b>.
