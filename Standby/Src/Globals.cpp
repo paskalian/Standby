@@ -54,6 +54,8 @@ namespace Standby
 		{
 			CloseHandle(ProcessHandle);
 			ProcessHandle = NULL;
+
+			Debug("[*] Old process handle closed.");
 		}
 
 		HANDLE hSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, NULL);

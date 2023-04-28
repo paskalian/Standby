@@ -175,7 +175,7 @@ namespace Standby
             const ImVec2 ProcessInformationChildSize = ImGui::GetItemRectSize();
 
             static PROCESSINFORMATION_DETAILED DetailedProcessInfo = {};
-            if (pSelectedProcess)
+            if (ProcessHandle)
             {
                 if (ProcessChanged)
                 {
@@ -198,7 +198,7 @@ namespace Standby
                     ImGui::Separator();
 
                     ImGui::Spacing(); ImGui::Spacing(); ImGui::Spacing();
-                    
+
                     ImGui::PushFont(RobotoSmall);
                     ImGui::TextWrapped("These values are updated once when an handle was opened, they are there to provide a basic overlook at the target process.");
                     ImGui::PopFont();
@@ -238,7 +238,6 @@ namespace Standby
 
                         ImGui::Separator();
                     }
-                    
                 }
             }
 
