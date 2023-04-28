@@ -34,7 +34,6 @@ extern "C" NTSTATUS NtCreateThreadEx(PHANDLE hThread, ACCESS_MASK DesiredAccess,
 
 using FLOADLIBRARYA = HMODULE(__fastcall*)(LPCSTR lpLibFileName);
 
-#define LOADLIBRARYSHELLCODESIZE 0x50
 struct LoadLibraryScParams
 {
 	FLOADLIBRARYA fLoadLibraryA;
@@ -44,7 +43,6 @@ struct LoadLibraryScParams
 
 using FLDRPLOADDLL = NTSTATUS(__fastcall*)(PWCHAR PathToFile, PULONG pFlags, PUNICODE_STRING ModuleFileName, PHANDLE ModuleHandle);
 
-#define LDRLOADDLLSHELLCODESIZE 0x50
 struct LdrLoadDllScParams
 {
 	FLDRPLOADDLL fLdrpLoadDll;
@@ -59,15 +57,12 @@ struct LdrLoadDllScParams
 
 using FGETPROCADDRESS = UINT_PTR(__fastcall*)(HMODULE hModule, LPCSTR lpProcName);
 
-#define MANUALMAPPINGSHELLCODESIZE 0x500
 struct ManualMappingScParams
 {
 	FLOADLIBRARYA fLoadLibraryA;
 	FGETPROCADDRESS fGetProcAddress;
 	PIMAGE_DOS_HEADER pDosHeader;
 };
-
-#define UNLINKFROMPEBSHELLCODESIZE 0x500
 
 namespace Standby
 {
@@ -79,17 +74,12 @@ namespace Standby
 	LPVOID MapDll();
 
 	LPVOID MapDll_LoadLibrary();
-#ifdef _WIN64
-	VOID MapDll_LoadLibrary_Shellcode(LoadLibraryScParams* pScParams);
-#endif
 	LPVOID MapDll_LdrLoadDll();
-	NTSTATUS MapDll_LdrLoadDll_Shellcode(LdrLoadDllScParams* pScParams);
 
 	LPVOID MapDll_ManualMapping();
 	HANDLE MapDll_ManualMapping_GetDllFileHandle();
 	std::vector<BYTE> MapDll_ManualMapping_ReadDllFileIntoBuffer(HANDLE hDllFile);
 	BOOLEAN MapDll_ManualMapping_ConfirmChecks(PIMAGE_DOS_HEADER pDosHeader);
-	VOID MapDll_ManualMapping_Shellcode(ManualMappingScParams* pScParams);
 
 	// ALLOCATION MODE
 	extern int AllocMode;
@@ -149,7 +139,6 @@ namespace Standby
 	extern bool DeletePEHeader;
 
 	BOOLEAN Dll_UnlinkFromPeb(LPVOID DllBase);
-	BOOLEAN Dll_UnlinkFromPeb_Shellcode(LPVOID DllBase);
 
 	BOOLEAN Dll_DeletePEHeader(LPVOID DllBase);
 }
