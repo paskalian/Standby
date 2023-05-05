@@ -151,7 +151,31 @@ namespace Standby
                     if (Standby::HandleRetrieve())
                     {
                         Debug("[*] Process handle retrieved successfully.");
-                        ProcessChanged = true;
+
+                        BOOL Wow64Process = false;
+
+                        IsWow64Process(ProcessHandle, &Wow64Process);
+#ifdef _WIN64
+                        if (Wow64Process)
+#else
+                        if (!Wow64Process)
+#endif
+                        {
+                            CloseHandle(ProcessHandle);
+                            Debug("[*] Old process handle closed.");
+                            ProcessHandle = NULL;
+                            pSelectedProcess = NULL;
+                            Pid = -1;
+#ifdef _WIN64
+                            Debug("[*] This is a 32-bit process, use the 32-bit version of this injector.");
+#else
+                            Debug("[*] This is a 64-bit process, use the 64-bit version of this injector.");
+#endif
+                        }
+                        else
+                        {
+                            ProcessChanged = true;
+                        }
                     }
                     else
                         Debug("[*] Process handle couldn't be retrieved.");
