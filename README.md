@@ -28,6 +28,7 @@ By clicking on configure you will be granted with a configuration window which y
 - If handle retrieval is selected as Handle Hijacking then the injector will hijack the handle instead of opening one itself.
 - If mapping is selected as Manual Mapping then the injector will map the dll file itself to the target process, so the dll won't be seen in the module list etc. (Can still be found though)
 - Functions ending with <b>(IMP)</b> are functions which we are invoking ourselves.
+- If remote thread mode is selected as Thread Hijacking then the injector will hijack the thread from the target process instead of creating one itself. **Currently it may not be a very safe option. Also don't forget that the hijacked thread can be any thread of the target process (usually main) and doesn't have the must to be running when it was hijacked. For summary even though you hijacked the thread, if it was in a sleep state it won't execute the shellcode until it runs.**
 - Unlink from peb option basically removes the dll entry from the loaded dll list of the target process, <b>useless if manually mapped since it won't be in there anyways</b>.
 - Delete PE header option basically deletes the entire PE header <b>after</b> injection from the target process memory.
 
