@@ -11,7 +11,7 @@
 <ins><b>I do not take responsibility for any misuse of this DLL injector in any way.</b></ins>
 
 # Compatibility
-Made to be compatible with both x64 and x86, tested on x64, **not sure about x86**.
+Compatible with both x64 and x86 processes, you **must** use the **specific** version for a process that is x64 or x86 respectively.
 
 # Usage
 
