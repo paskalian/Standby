@@ -2,37 +2,40 @@
 
 #include "Includes.h"
 
-using tNtAllocateVirtualMemory = NTSTATUS(__fastcall*)(HANDLE ProcessHandle, PVOID* BaseAddress, ULONG_PTR ZeroBits, PSIZE_T RegionSize, ULONG AllocationType, ULONG Protect);
+#define HIDWORD(x) (x >> 32)
+#define LODWORD(x) (x & 0xFFFFFFFF)
+
+using tNtAllocateVirtualMemory = NTSTATUS(__stdcall*)(HANDLE ProcessHandle, PVOID* BaseAddress, ULONG_PTR ZeroBits, PSIZE_T RegionSize, ULONG AllocationType, ULONG Protect);
 extern tNtAllocateVirtualMemory fNtAllocateVirtualMemory;
 
-extern "C" NTSTATUS NtAllocateVirtualMemory(HANDLE ProcessHandle, PVOID* BaseAddress, ULONG_PTR ZeroBits, PSIZE_T RegionSize, ULONG AllocationType, ULONG Protect);
+extern "C" NTSTATUS __stdcall NtAllocateVirtualMemory(HANDLE ProcessHandle, PVOID* BaseAddress, ULONG_PTR ZeroBits, PSIZE_T RegionSize, ULONG AllocationType, ULONG Protect);
 
-using tNtFreeVirtualMemory = NTSTATUS(__fastcall*)(HANDLE ProcessHandle, PVOID* BaseAddress, PSIZE_T RegionSize, ULONG FreeType);
+using tNtFreeVirtualMemory = NTSTATUS(__stdcall*)(HANDLE ProcessHandle, PVOID* BaseAddress, PSIZE_T RegionSize, ULONG FreeType);
 extern tNtFreeVirtualMemory fNtFreeVirtualMemory;
 
-extern "C" NTSTATUS NtFreeVirtualMemory(HANDLE ProcessHandle, PVOID * BaseAddress, PSIZE_T RegionSize, ULONG FreeType);
+extern "C" NTSTATUS __stdcall NtFreeVirtualMemory(HANDLE ProcessHandle, PVOID * BaseAddress, PSIZE_T RegionSize, ULONG FreeType);
 
-using tNtReadVirtualMemory = NTSTATUS(__fastcall*)(HANDLE ProcessHandle, PVOID  BaseAddress, PVOID Buffer, ULONG NumberOfBytesToRead, PULONG NumberOfBytesReaded);
+using tNtReadVirtualMemory = NTSTATUS(__stdcall*)(HANDLE ProcessHandle, PVOID  BaseAddress, PVOID Buffer, ULONG NumberOfBytesToRead, PULONG NumberOfBytesReaded);
 extern tNtReadVirtualMemory fNtReadVirtualMemory;
 
-extern "C" NTSTATUS NtReadVirtualMemory(HANDLE ProcessHandle, PVOID  BaseAddress, PVOID Buffer, ULONG NumberOfBytesToRead, PULONG NumberOfBytesReaded);
+extern "C" NTSTATUS __stdcall NtReadVirtualMemory(HANDLE ProcessHandle, PVOID  BaseAddress, PVOID Buffer, ULONG NumberOfBytesToRead, PULONG NumberOfBytesReaded);
 
-using tNtWriteVirtualMemory = NTSTATUS(__fastcall*)(HANDLE ProcessHandle, PVOID BaseAddress, PVOID Buffer, ULONG NumberOfBytesToWrite, PULONG NumberOfBytesWritten);
+using tNtWriteVirtualMemory = NTSTATUS(__stdcall*)(HANDLE ProcessHandle, PVOID BaseAddress, PVOID Buffer, ULONG NumberOfBytesToWrite, PULONG NumberOfBytesWritten);
 extern tNtWriteVirtualMemory fNtWriteVirtualMemory;
 
-extern "C" NTSTATUS NtWriteVirtualMemory(HANDLE ProcessHandle, PVOID BaseAddress, PVOID Buffer, ULONG NumberOfBytesToWrite, PULONG NumberOfBytesWritten);
+extern "C" NTSTATUS __stdcall NtWriteVirtualMemory(HANDLE ProcessHandle, PVOID BaseAddress, PVOID Buffer, ULONG NumberOfBytesToWrite, PULONG NumberOfBytesWritten);
 
-using tNtProtectVirtualMemory = NTSTATUS(__fastcall*)(HANDLE ProcessHandle, LPVOID lpAddress, SIZE_T dwSize, DWORD flNewProtect, PDWORD lpflOldProtect);
+using tNtProtectVirtualMemory = NTSTATUS(__stdcall*)(HANDLE ProcessHandle, LPVOID lpAddress, SIZE_T dwSize, DWORD flNewProtect, PDWORD lpflOldProtect);
 extern tNtProtectVirtualMemory fNtProtectVirtualMemory;
 
-extern "C" NTSTATUS NtProtectVirtualMemory(HANDLE ProcessHandle, LPVOID lpAddress, SIZE_T dwSize, DWORD flNewProtect, PDWORD lpflOldProtect);
+extern "C" NTSTATUS __stdcall NtProtectVirtualMemory(HANDLE ProcessHandle, LPVOID lpAddress, SIZE_T dwSize, DWORD flNewProtect, PDWORD lpflOldProtect);
 
-using tNtCreateThreadEx = NTSTATUS(__fastcall*)(PHANDLE hThread, ACCESS_MASK DesiredAccess, PVOID ObjectAttributes, HANDLE ProcessHandle, PVOID lpStartAddress, PVOID lpParameter, ULONG Flags, SIZE_T StackZeroBits, SIZE_T SizeOfStackCommit, SIZE_T SizeOfStackReserve, PVOID lpBytesBuffer);
+using tNtCreateThreadEx = NTSTATUS(__stdcall*)(PHANDLE hThread, ACCESS_MASK DesiredAccess, PVOID ObjectAttributes, HANDLE ProcessHandle, PVOID lpStartAddress, PVOID lpParameter, ULONG Flags, SIZE_T StackZeroBits, SIZE_T SizeOfStackCommit, SIZE_T SizeOfStackReserve, PVOID lpBytesBuffer);
 extern tNtCreateThreadEx fNtCreateThreadEx;
 
-extern "C" NTSTATUS NtCreateThreadEx(PHANDLE hThread, ACCESS_MASK DesiredAccess, PVOID ObjectAttributes, HANDLE ProcessHandle, PVOID lpStartAddress, PVOID lpParameter, ULONG Flags, SIZE_T StackZeroBits, SIZE_T SizeOfStackCommit, SIZE_T SizeOfStackReserve, PVOID lpBytesBuffer);
+extern "C" NTSTATUS __stdcall NtCreateThreadEx(PHANDLE hThread, ACCESS_MASK DesiredAccess, PVOID ObjectAttributes, HANDLE ProcessHandle, PVOID lpStartAddress, PVOID lpParameter, ULONG Flags, SIZE_T StackZeroBits, SIZE_T SizeOfStackCommit, SIZE_T SizeOfStackReserve, PVOID lpBytesBuffer);
 
-using FLOADLIBRARYA = HMODULE(__fastcall*)(LPCSTR lpLibFileName);
+using FLOADLIBRARYA = HMODULE(__stdcall*)(LPCSTR lpLibFileName);
 
 struct LoadLibraryScParams
 {
@@ -41,7 +44,7 @@ struct LoadLibraryScParams
 	HMODULE ReturnModule;
 };
 
-using FLDRPLOADDLL = NTSTATUS(__fastcall*)(PWCHAR PathToFile, PULONG pFlags, PUNICODE_STRING ModuleFileName, PHANDLE ModuleHandle);
+using FLDRPLOADDLL = NTSTATUS(__stdcall*)(PWCHAR PathToFile, PULONG pFlags, PUNICODE_STRING ModuleFileName, PHANDLE ModuleHandle);
 
 struct LdrLoadDllScParams
 {
@@ -55,13 +58,47 @@ struct LdrLoadDllScParams
 	HMODULE ReturnModule;
 };
 
-using FGETPROCADDRESS = UINT_PTR(__fastcall*)(HMODULE hModule, LPCSTR lpProcName);
+using FGETPROCADDRESS = UINT_PTR(__stdcall*)(HMODULE hModule, LPCSTR lpProcName);
 
 struct ManualMappingScParams
 {
 	FLOADLIBRARYA fLoadLibraryA;
 	FGETPROCADDRESS fGetProcAddress;
 	PIMAGE_DOS_HEADER pDosHeader;
+};
+
+struct THREADHIJACKDATA
+{
+	UINT_PTR FunctionAddress = 0;
+	UINT_PTR VariablesAddress = 0;
+};
+
+enum class THREADSIZETYPE
+{
+	DEFAULT,
+	INCLUDEEXTRA,
+	ACTUALSIZE
+};
+
+
+enum class THREADHIJACKTYPE
+{
+	DIRECT, // ExecuteAddress is treated as is in the target process address space, there will be no extra allocations other than for the Arguments. After the set-up,
+	// it gets executed.
+
+	SELF,   // ExecuteAddress is treated as an array of 2 UINT_PTRs which the first UINT_PTR being the function address (in the current process), and the second being the
+	// function size, which then the function size is used to allocate memory for the function itself and copy it to there from the function address + the Arguments
+	// inside the target process. Finally after the set-up, it gets executed.
+
+	BYTE    // ExecuteAddress is treated as an std::vector<BYTE>* which is used to allocate an extra memory for the function itself and copy it to there + the Arguments
+			// inside the target process. Finally after the set-up, it gets executed.
+};
+
+enum class CALLINGCONVENTION : DWORD
+{
+	CC_CDECL,
+	CC_STDCALL,
+	CC_FASTCALL
 };
 
 namespace Standby
@@ -102,11 +139,11 @@ namespace Standby
 	// READ MEMORY
 	extern int ReadMode;
 
-	BOOL Read(LPCVOID lpAddress, LPVOID lpBuffer, SIZE_T nSize);
+	BOOL Read(LPCVOID lpAddress, LPVOID lpBuffer, SIZE_T nSize, BOOLEAN Dbg = true);
 
-	BOOL Read_ReadProcessMemory(LPCVOID lpAddress, LPVOID lpBuffer, SIZE_T nSize);
-	BOOL Read_NtReadVirtualMemory(LPCVOID lpAddress, LPVOID lpBuffer, SIZE_T nSize);
-	BOOL Read_NtReadVirtualMemoryImp(LPCVOID lpAddress, LPVOID lpBuffer, SIZE_T nSize);
+	BOOL Read_ReadProcessMemory(LPCVOID lpAddress, LPVOID lpBuffer, SIZE_T nSize, BOOLEAN Dbg = true);
+	BOOL Read_NtReadVirtualMemory(LPCVOID lpAddress, LPVOID lpBuffer, SIZE_T nSize, BOOLEAN Dbg = true);
+	BOOL Read_NtReadVirtualMemoryImp(LPCVOID lpAddress, LPVOID lpBuffer, SIZE_T nSize, BOOLEAN Dbg = true);
 
 	// WRITE MEMORY
 	extern int WriteMode;
@@ -134,6 +171,11 @@ namespace Standby
 	HANDLE RemoteThread_CreateRemoteThread(LPTHREAD_START_ROUTINE lpStartAddress, LPVOID lpParameter);
 	HANDLE RemoteThread_NtCreateThreadEx(LPTHREAD_START_ROUTINE lpStartAddress, LPVOID lpParameter);
 	HANDLE RemoteThread_NtCreateThreadExImp(LPTHREAD_START_ROUTINE lpStartAddress, LPVOID lpParameter);
+	HANDLE RemoteThread_ThreadHijacking(LPTHREAD_START_ROUTINE lpStartAddress, LPVOID lpParameter);
+	VOID RemoteThread_ThreadHijacking_Handle(HANDLE TargetProcess, THREADHIJACKTYPE HijackType, UINT_PTR FunctionAddress, std::vector<std::any> Arguments = {}, CALLINGCONVENTION CallConvention = CALLINGCONVENTION::CC_CDECL);
+	SIZE_T RemoteThread_ThreadHijacking_GetTypeSize(const std::any& Type, THREADSIZETYPE SizeType);
+	SIZE_T RemoteThread_ThreadHijacking_GetArgumentsSize(const std::vector<std::any>& Arguments, THREADSIZETYPE SizeType);
+	VOID RemoteThread_ThreadHijacking_HijackThread(HANDLE TargetProcess, THREADHIJACKDATA& Data);
 
 	extern bool UnlinkFromPeb;
 	extern bool DeletePEHeader;

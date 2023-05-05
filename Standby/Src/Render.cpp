@@ -429,11 +429,10 @@ namespace Standby
             ImGui::Combo("##ProtectMode", &ProtectMode, ProtectModes, IM_ARRAYSIZE(ProtectModes));
 
 
-            static const char* RemoteThreadModes[] = { "CreateRemoteThread", "NtCreateThreadEx", "NtCreateThreadEx (IMP)" };
-            static int CurrentRemoteThreadMode = 0;
+            static const char* RemoteThreadModes[] = { "CreateRemoteThread", "NtCreateThreadEx", "NtCreateThreadEx (IMP)", "Hijack Thread" };
 
             ImGui::Text("Remote Thread");
-            ImGui::Combo("##RemoteThreadMode", &CurrentRemoteThreadMode, RemoteThreadModes, IM_ARRAYSIZE(RemoteThreadModes));
+            ImGui::Combo("##RemoteThreadMode", &RemoteThreadMode, RemoteThreadModes, IM_ARRAYSIZE(RemoteThreadModes));
 
 
             ImGui::Checkbox("Unlink From PEB", &UnlinkFromPeb);

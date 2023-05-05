@@ -27,6 +27,7 @@
 #define REMOTETHREAD_CREATEREMOTETHREAD 0
 #define REMOTETHREAD_NTCREATETHREADEX 1
 #define REMOTETHREAD_NTCREATETHREADEXIMP 2
+#define REMOTETHREAD_THREADHIJACKING 3
 
 tNtAllocateVirtualMemory fNtAllocateVirtualMemory = nullptr;
 tNtFreeVirtualMemory fNtFreeVirtualMemory = nullptr;
@@ -161,8 +162,11 @@ namespace Standby
 			return nullptr;
 		}
 
-		// Waiting for shellcode thread to finish.
-		WaitForSingleObject(hLoadLibraryShellcode, INFINITE);
+		if (hLoadLibraryShellcode != INVALID_HANDLE_VALUE)
+		{
+			// Waiting for shellcode thread to finish.
+			WaitForSingleObject(hLoadLibraryShellcode, INFINITE);
+		}
 
 		// Since the shellcode thread doesn't have a return value we don't even bother checking for it. (Making it send back a return value is useless anyways)
 
@@ -184,7 +188,10 @@ namespace Standby
 			return nullptr;
 		}
 
-		WaitForSingleObject(hLoadLibrary, INFINITE);
+		if (hLoadLibrary != INVALID_HANDLE_VALUE)
+		{
+			WaitForSingleObject(hLoadLibrary, INFINITE);
+		}
 
 		if (!GetExitCodeThread(hLoadLibrary, (PDWORD)&ReturnModule))
 			Debug("[-] GetExitCodeThread failed.");
@@ -316,8 +323,11 @@ namespace Standby
 			return nullptr;
 		}
 
-		// Waiting for shellcode thread to finish.
-		WaitForSingleObject(hLdrpLoadDllShellcode, INFINITE);
+		if (hLdrpLoadDllShellcode != INVALID_HANDLE_VALUE)
+		{
+			// Waiting for shellcode thread to finish.
+			WaitForSingleObject(hLdrpLoadDllShellcode, INFINITE);
+		}
 
 		NTSTATUS ReturnStatus = 0;
 		if (!GetExitCodeThread(hLdrpLoadDllShellcode, (PDWORD)&ReturnStatus))
@@ -549,7 +559,10 @@ namespace Standby
 			return nullptr;
 		}
 
-		WaitForSingleObject(hShellcodeThread, INFINITE);
+		if (hShellcodeThread != INVALID_HANDLE_VALUE)
+		{
+			WaitForSingleObject(hShellcodeThread, INFINITE);
+		}
 
 		if (!Free(AllocatedShellcode))
 			Debug("[-] Free failed.");
@@ -647,7 +660,7 @@ namespace Standby
 	}
 
 	/*
-	using TDLLENTRY = BOOL(__fastcall*)(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved);
+	using TDLLENTRY = BOOL(__stdcall*)(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved);
 	VOID MapDll_ManualMapping_Shellcode(ManualMappingScParams* pScParams)
 	{
 		PIMAGE_DOS_HEADER pVDosHeader = pScParams->pDosHeader;
@@ -864,42 +877,46 @@ namespace Standby
 	// READ MEMORY
 	int ReadMode = READ_READPROCESSMEMORY;
 
-	BOOL Read(LPCVOID lpAddress, LPVOID lpBuffer, SIZE_T nSize)
+	BOOL Read(LPCVOID lpAddress, LPVOID lpBuffer, SIZE_T nSize, BOOLEAN Dbg)
 	{
-		Debug("[*] Trying to read from the memory of target process.");
+		if (Dbg)
+			Debug("[*] Trying to read from the memory of target process.");
 
 		switch (ReadMode)
 		{
 		case READ_READPROCESSMEMORY:
-			return Read_ReadProcessMemory(lpAddress, lpBuffer, nSize);
+			return Read_ReadProcessMemory(lpAddress, lpBuffer, nSize, Dbg);
 		case READ_NTREADVIRTUALMEMORY:
-			return Read_NtReadVirtualMemory(lpAddress, lpBuffer, nSize);
+			return Read_NtReadVirtualMemory(lpAddress, lpBuffer, nSize, Dbg);
 		case READ_NTREADVIRTUALMEMORYIMP:
-			return Read_NtReadVirtualMemoryImp(lpAddress, lpBuffer, nSize);
+			return Read_NtReadVirtualMemoryImp(lpAddress, lpBuffer, nSize, Dbg);
 		}
 
 		return true;
 	}
 
-	BOOL Read_ReadProcessMemory(LPCVOID lpAddress, LPVOID lpBuffer, SIZE_T nSize)
+	BOOL Read_ReadProcessMemory(LPCVOID lpAddress, LPVOID lpBuffer, SIZE_T nSize, BOOLEAN Dbg)
 	{
-		Debug("[*] Reading memory through ReadProcessMemory.");
+		if (Dbg)
+			Debug("[*] Reading memory through ReadProcessMemory.");
 
 		SIZE_T NumberOfBytesRead = 0;
 		return ReadProcessMemory(ProcessHandle, lpAddress, lpBuffer, nSize, &NumberOfBytesRead);
 	}
 
-	BOOL Read_NtReadVirtualMemory(LPCVOID lpAddress, LPVOID lpBuffer, SIZE_T nSize)
+	BOOL Read_NtReadVirtualMemory(LPCVOID lpAddress, LPVOID lpBuffer, SIZE_T nSize, BOOLEAN Dbg)
 	{
-		Debug("[*] Reading memory through NtReadVirtualMemory.");
+		if (Dbg)
+			Debug("[*] Reading memory through NtReadVirtualMemory.");
 
 		ULONG NumberOfBytesRead = 0;
 		return NT_SUCCESS(fNtReadVirtualMemory(ProcessHandle, (PVOID)lpAddress, lpBuffer, nSize, &NumberOfBytesRead));
 	}
 
-	BOOL Read_NtReadVirtualMemoryImp(LPCVOID lpAddress, LPVOID lpBuffer, SIZE_T nSize)
+	BOOL Read_NtReadVirtualMemoryImp(LPCVOID lpAddress, LPVOID lpBuffer, SIZE_T nSize, BOOLEAN Dbg)
 	{
-		Debug("[*] Reading memory through NtReadVirtualMemoryImp.");
+		if (Dbg)
+			Debug("[*] Reading memory through NtReadVirtualMemoryImp.");
 
 		ULONG NumberOfBytesRead = 0;
 		return NT_SUCCESS(NtReadVirtualMemory(ProcessHandle, (PVOID)lpAddress, lpBuffer, nSize, &NumberOfBytesRead));
@@ -1001,9 +1018,11 @@ namespace Standby
 			return RemoteThread_NtCreateThreadEx(lpStartAddress, lpParameter);
 		case REMOTETHREAD_NTCREATETHREADEXIMP:
 			return RemoteThread_NtCreateThreadExImp(lpStartAddress, lpParameter);
+		case REMOTETHREAD_THREADHIJACKING:
+			return RemoteThread_ThreadHijacking(lpStartAddress, lpParameter);
 		}
 
-		return INVALID_HANDLE_VALUE;
+		return 0;
 	}
 
 	HANDLE RemoteThread_CreateRemoteThread(LPTHREAD_START_ROUTINE lpStartAddress, LPVOID lpParameter)
@@ -1031,6 +1050,390 @@ namespace Standby
 		NTSTATUS Status = NtCreateThreadEx(&ThreadHandle, THREAD_ALL_ACCESS, NULL, ProcessHandle, (LPTHREAD_START_ROUTINE)lpStartAddress, lpParameter, FALSE, NULL, NULL, NULL, NULL);
 
 		return ThreadHandle;
+	}
+
+	HANDLE RemoteThread_ThreadHijacking(LPTHREAD_START_ROUTINE lpStartAddress, LPVOID lpParameter)
+	{
+		Debug("[*] Creating a remote thread through ThreadHijacking.");
+
+		RemoteThread_ThreadHijacking_Handle(ProcessHandle, THREADHIJACKTYPE::DIRECT, (UINT_PTR)lpStartAddress, { lpParameter }, CALLINGCONVENTION::CC_STDCALL);
+
+		return INVALID_HANDLE_VALUE;
+	}
+
+	VOID RemoteThread_ThreadHijacking_Handle(HANDLE TargetProcess, THREADHIJACKTYPE HijackType, UINT_PTR FunctionAddress, std::vector<std::any> Arguments, CALLINGCONVENTION CallConvention)
+	{
+#ifdef _WIN64
+		// If the number of arguments is less than 4, we complete it to 4.
+		while (Arguments.size() < 4)
+			Arguments.push_back(0);
+#else
+		if (CallConvention == CALLINGCONVENTION::CC_FASTCALL)
+		{
+			// If the number of arguments is less than 2, we complete it to 2.
+			while (Arguments.size() < 2)
+				Arguments.push_back(0);
+		}
+#endif
+
+		THREADHIJACKDATA Data = {};
+
+		PVOID VariablesMemory = nullptr;
+
+		const SIZE_T ArgumentsSize = RemoteThread_ThreadHijacking_GetArgumentsSize(Arguments, THREADSIZETYPE::INCLUDEEXTRA) + sizeof(DWORD64);
+		const SIZE_T OffsetToExtra = RemoteThread_ThreadHijacking_GetArgumentsSize(Arguments, THREADSIZETYPE::DEFAULT) + sizeof(DWORD64);
+
+		// Allocating space for the argument count + arguments 
+		VariablesMemory = Alloc(NULL, ArgumentsSize, PAGE_READWRITE);
+		if (!VariablesMemory)
+		{
+			Debug("[-] Alloc failed.");
+			return;
+		}
+
+		// Writing the argument count to the first UINT_PTR
+		const SIZE_T ArgumentCount = Arguments.size();
+		if (!Write((BYTE*)VariablesMemory, &ArgumentCount, sizeof(SIZE_T)))
+		{
+			Debug("[-] Write failed.");
+			Free(VariablesMemory);
+			return;
+		}
+	#ifndef _WIN64
+		// Writing the calling convetion to the second UINT_PTR
+		if (!Write((BYTE*)VariablesMemory + 4, &CallConvention, sizeof(DWORD)))
+		{
+			Debug("[-] Write failed.");
+			VirtualFreeEx(TargetProcess, VariablesMemory, 0, MEM_RELEASE);
+			return;
+		}
+	#endif
+
+		// Writing the other arguments, if it's a string we write them to the extra zone.
+		SIZE_T Offset = sizeof(DWORD64);
+		SIZE_T OffsetFromExtra = 0;
+		for (auto& ArgIdx : Arguments)
+		{
+			const SIZE_T ArgSize = RemoteThread_ThreadHijacking_GetTypeSize(ArgIdx, THREADSIZETYPE::INCLUDEEXTRA);
+
+			const BOOLEAN IsString = ArgSize > sizeof(PVOID);
+			const SIZE_T StringSize = IsString ? ArgSize - sizeof(PVOID) : 0;
+			if (IsString)
+			{
+				BYTE* StringAddress = (BYTE*)VariablesMemory + OffsetToExtra + OffsetFromExtra;
+				if (!Write((BYTE*)VariablesMemory + Offset, &StringAddress, sizeof(PVOID)) ||
+				   (!Write(StringAddress, *(const char**)&ArgIdx, StringSize)))
+				{
+					Debug("[-] Write failed.");
+					Free(VariablesMemory);
+					return;
+				}
+			}
+			else
+			{
+				const SIZE_T ActualSize = RemoteThread_ThreadHijacking_GetTypeSize(ArgIdx, THREADSIZETYPE::ACTUALSIZE);
+				if (!Write((BYTE*)VariablesMemory + Offset, &ArgIdx, ActualSize))
+				{
+					Debug("[-] Write failed.");
+					Free(VariablesMemory);
+					return;
+				}
+			}
+
+			Offset += sizeof(PVOID);
+			OffsetFromExtra += StringSize;
+		}
+
+		Data.VariablesAddress = (UINT_PTR)VariablesMemory;
+
+		PVOID AllocatedMemory = nullptr;
+		switch (HijackType)
+		{
+			case THREADHIJACKTYPE::DIRECT:
+			{
+				// If it's direct we don't need to allocate then write the function since it's already in the target process.
+				Data.FunctionAddress = FunctionAddress;
+
+				RemoteThread_ThreadHijacking_HijackThread(TargetProcess, Data);
+
+				break;
+			}
+			case THREADHIJACKTYPE::BYTE:
+			{
+				// Allocating memory for the function in the target process and writing the function bytes there.
+				std::vector<BYTE>* FunctionBytes = (std::vector<BYTE>*)FunctionAddress;
+				AllocatedMemory = Alloc(NULL, FunctionBytes->size(), PAGE_READWRITE);
+				if (!AllocatedMemory)
+				{
+					Debug("[-] Alloc failed.");
+					return;
+				}
+
+				if (!Write(AllocatedMemory, FunctionBytes, FunctionBytes->size()))
+				{
+					Debug("[-] Write failed.");
+					Free(AllocatedMemory);
+					return;
+				}
+			}
+			case THREADHIJACKTYPE::SELF:
+			{
+				// Since THREADHIJACKTYPE::BYTE doesn't have a break it will end up here after it's own functionality, this check is to seperate the two because they end up doing the exact
+				// same thing ultimately.
+				if (!AllocatedMemory)
+				{
+					// Allocating memory for the function in the target process and writing the function bytes there.
+					UINT_PTR* FunctionAndSize = (UINT_PTR*)FunctionAddress;
+
+					AllocatedMemory = Alloc(NULL, FunctionAndSize[1], PAGE_READWRITE);
+					if (!AllocatedMemory)
+					{
+						Debug("[-] Alloc failed.");
+						return;
+					}
+
+					if (!Write(AllocatedMemory, (PVOID)FunctionAndSize[0], FunctionAndSize[1]))
+					{
+						Debug("[-] Write failed.");
+						Free(AllocatedMemory);
+						return;
+					}
+				}
+
+				Data.FunctionAddress = (UINT_PTR)AllocatedMemory;
+				RemoteThread_ThreadHijacking_HijackThread(TargetProcess, Data);
+
+				break;
+			}
+		}
+
+		if (HijackType != THREADHIJACKTYPE::DIRECT)
+		{
+			if (Data.FunctionAddress)
+				Free((LPVOID)Data.FunctionAddress);
+		}
+
+		if (Data.VariablesAddress)
+			Free((LPVOID)Data.VariablesAddress);
+	}
+
+	SIZE_T RemoteThread_ThreadHijacking_GetTypeSize(const std::any& Type, THREADSIZETYPE SizeType)
+	{
+		const type_info& TypeInfo = Type.type();
+		const std::string TypeName = TypeInfo.name();
+
+		// I can't switch.
+		if (TypeInfo == typeid(const char*) || TypeInfo == typeid(char*))
+			return SizeType == THREADSIZETYPE::INCLUDEEXTRA ? (sizeof(char*) + strlen(*(const char**)&Type) + 1) : sizeof(char*);
+		else if (TypeInfo == typeid(const wchar_t*))
+			return SizeType == THREADSIZETYPE::INCLUDEEXTRA ? (sizeof(wchar_t*) + wcslen(*(const wchar_t**)&Type) * sizeof(WCHAR) + 2) : sizeof(wchar_t*);
+		else
+		{
+			if (SizeType == THREADSIZETYPE::ACTUALSIZE)
+			{
+				if (TypeName.find('*') != TypeName.npos)
+					return sizeof(PVOID);
+				else if (TypeInfo == typeid(int))
+					return sizeof(int);
+				else if (TypeInfo == typeid(long))
+					return sizeof(long);
+				else if (TypeInfo == typeid(short))
+					return sizeof(short);
+				else if (TypeInfo == typeid(bool))
+					return sizeof(bool);
+				// Floating point values must be handled by the xmm registers and I don't know how.
+				//else if (TypeInfo == typeid(float))
+				//  return sizeof(float);
+				else
+				{
+					assert(false);
+				}
+			}
+
+			return sizeof(PVOID);
+		}
+	}
+
+	SIZE_T RemoteThread_ThreadHijacking_GetArgumentsSize(const std::vector<std::any>& Arguments, THREADSIZETYPE SizeType)
+	{
+		SIZE_T ArgumentsSize = 0;
+		for (auto& ArgIdx : Arguments)
+			ArgumentsSize += RemoteThread_ThreadHijacking_GetTypeSize(ArgIdx, SizeType);
+
+		return ArgumentsSize;
+	}
+
+	VOID RemoteThread_ThreadHijacking_HijackThread(HANDLE TargetProcess, THREADHIJACKDATA& Data)
+	{
+#ifdef _WIN64
+		static const BYTE ShellcodeBytes[] =
+			"\x48\x83\xEC\x08\xC7\x04\x24\xCC\xCC\xCC\xCC\xC7\x44\x24\x04\xCC\xCC\xCC\xCC\x9C\x50\x51\x52\x53\x55\x56\x57\x41\x50\x41\x51\x41\x52"
+			"\x41\x53\x41\x54\x41\x55\x41\x56\x41\x57\x48\xB8\xCC\xCC\xCC\xCC\xCC\xCC\xCC\xCC\x48\x8B\x30\x48\x8B\x48\x08\x48\x8B\x50\x10\x4C\x8B"
+			"\x40\x18\x4C\x8B\x48\x20\x48\x33\xDB\x48\x89\x18\x48\x83\xFE\x04\x76\x20\x48\x83\xEE\x04\x48\x89\x30\x48\xF7\xC6\x01\x00\x00\x00\x74"
+			"\x04\x48\x83\xEC\x08\xFF\x74\xF0\x20\x48\xFF\xCE\x48\x85\xF6\x75\xF4\x48\xB8\xCC\xCC\xCC\xCC\xCC\xCC\xCC\xCC\x48\x83\xEC\x20\xFF\xD0"
+			"\x48\x83\xC4\x20\x48\xB8\xCC\xCC\xCC\xCC\xCC\xCC\xCC\xCC\x48\x8B\x30\x48\x8B\xDE\x48\x6B\xF6\x08\x48\x03\xE6\x48\xF7\xC3\x01\x00\x00"
+			"\x00\x74\x04\x48\x83\xC4\x08\x48\xC7\x00\xFF\xFF\xFF\xFF\x41\x5F\x41\x5E\x41\x5D\x41\x5C\x41\x5B\x41\x5A\x41\x59\x41\x58\x5F\x5E\x5D"
+			"\x5B\x5A\x59\x58\x9D\xC3";
+#else
+		static const BYTE ShellcodeBytes[] =
+			"\x83\xEC\x04\xC7\x04\x24\xCC\xCC\xCC\xCC\x9C\x60\xB8\xCC\xCC\xCC\xCC\x8B\x30\x8B\x58\x04\x83\xFB\x02\x74\x0B\xFF\x74\xB0\x04\x4E\x85"
+			"\xF6\x75\xF7\xEB\x1F\x8B\x48\x08\x8B\x50\x0C\xC7\x00\x00\x00\x00\x00\x83\xFE\x02\x76\x0E\x83\xEE\x02\x89\x30\xFF\x74\xB0\x0C\x4E\x85"
+			"\xF6\x75\xF7\xB8\xCC\xCC\xCC\xCC\xFF\xD0\xB8\xCC\xCC\xCC\xCC\x8B\x30\x8B\x58\x04\x83\xFB\x01\x74\x05\x6B\xF6\x04\x03\xE6\xC7\x00\xFF"
+			"\xFF\xFF\xFF\x61\x9D\xC3";
+#endif
+
+		const PVOID ShellcodeMemory = Alloc(NULL, sizeof(ShellcodeBytes), PAGE_EXECUTE_READWRITE);
+		if (!ShellcodeMemory)
+		{
+			Debug("[-] Alloc failed.");
+			return;
+		}
+
+		if (!Write(ShellcodeMemory, ShellcodeBytes, sizeof(ShellcodeBytes)))
+		{
+			Debug("[-] Write failed.");
+
+			Free(ShellcodeMemory);
+			return;
+		}
+
+		// Getting a handle to the base thread.
+		HANDLE hThread = GetBaseThreadHandle(GetProcessId(TargetProcess));
+		if (!hThread)
+		{
+			Free(ShellcodeMemory);
+			return;
+		}
+		Debug("[*] Retrieved handle for target thread.");
+
+		// Setting up a CONTEXT structure to be used while getting the thread context, CONTEXT_CONTROL meaning
+		// we will only work on RIP, etc.
+		CONTEXT ThreadContext;
+		ThreadContext.ContextFlags = CONTEXT_CONTROL;
+
+		// Suspending the thread because if we change the thread context while it's running it can result in undefined behaviour.
+		if (SuspendThread(hThread) == HandleToULong(INVALID_HANDLE_VALUE))
+		{
+			Debug("[-] SuspendThread failed.");
+
+			Free(ShellcodeMemory);
+			CloseHandle(hThread);
+			return;
+		}
+		Debug("[*] Thread suspended.");
+
+		// Getting the thread context.
+		if (GetThreadContext(hThread, &ThreadContext))
+		{
+			// Saving the RIP since we are gonna return the thread after the shellcode is executed.
+#ifdef _WIN64
+			UINT_PTR JmpBackAddr = ThreadContext.Rip;
+#else
+			UINT_PTR JmpBackAddr = ThreadContext.Eip;
+#endif
+
+#ifdef _WIN64
+			DWORD LoJmpBk = LODWORD(JmpBackAddr);
+			DWORD HiJmpBk = HIDWORD(JmpBackAddr);
+
+			// Writing the JmpBackAddr into the
+			// mov dword ptr [rsp], 0CCCCCCCCh
+			// mov dword ptr[rsp + 4], 0CCCCCCCCh
+			// corresponding bytes ( CC ) and then when the shellcode is executed, it will get itself some stack space and write the
+			// return address in there, when ret is called after all it pops the stack and returns to what was on top of
+			// the stack which is that address.
+			Write((LPVOID)((BYTE*)ShellcodeMemory + 7), &LoJmpBk, sizeof(DWORD));
+			Write((LPVOID)((BYTE*)ShellcodeMemory + 15), &HiJmpBk, sizeof(DWORD));
+
+			// Writing the ShellcodeParams into the
+			// mov rax, 0CCCCCCCCCCCCCCCCh
+			// corresponding bytes ( CC ) which gets moved into rax and the shellcode uses rax as the base for the parameters.
+			DWORD64 Buffer64 = Data.VariablesAddress;
+			Write((LPVOID)((BYTE*)ShellcodeMemory + 45), &Buffer64, sizeof(DWORD64));
+
+			// Writing the ShellcodeParams into the
+			// mov rax, 0CCCCCCCCCCCCCCCCh
+			// corresponding bytes ( CC ) which gets moved into rax and the shellcode uses rax as the function address.
+			Buffer64 = Data.FunctionAddress;
+			Write((LPVOID)((BYTE*)ShellcodeMemory + 118), &Buffer64, sizeof(DWORD64));
+
+			// Writing the ShellcodeParams into the
+			// mov rax, 0CCCCCCCCCCCCCCCCh
+			// corresponding bytes ( CC ) which gets moved into rax and the shellcode uses rax as the base for the parameters.
+			Buffer64 = Data.VariablesAddress;
+			Write((LPVOID)((BYTE*)ShellcodeMemory + 138), &Buffer64, sizeof(DWORD64));
+#else
+			// We can directly write JmpBackAddr since it will be a DWORD.
+
+			// Writing the JmpBackAddr into the
+			// mov dword ptr [esp], 0CCCCCCCCh
+			// corresponding bytes ( CC ) and then when the shellcode is executed, it will get itself some stack space and write the
+			// return address in there, when ret is called after all it pops the stack and returns to what was on top of
+			// the stack which is that address.
+			Write((LPVOID)((BYTE*)ShellcodeMemory + 6), &JmpBackAddr, sizeof(DWORD));
+
+			// Writing the ShellcodeParams into the
+			// mov eax, 0CCCCCCCCh
+			// corresponding bytes ( CC ) which gets moved into rax and the shellcode uses rax as the base for the parameters.
+			DWORD Buffer = Data.VariablesAddress;
+			Write((LPVOID)((BYTE*)ShellcodeMemory + 13), &Buffer, sizeof(DWORD));
+
+			// Writing the ShellcodeParams into the
+			// mov eax, 0CCCCCCCCh
+			// corresponding bytes ( CC ) which gets moved into rax and the shellcode uses rax as the base for the parameters.
+			Buffer = Data.FunctionAddress;
+			Write((LPVOID)((BYTE*)ShellcodeMemory + 70), &Buffer, sizeof(DWORD));
+
+			// Writing the ShellcodeParams into the
+			// mov eax, 0CCCCCCCCh
+			// corresponding bytes ( CC ) which gets moved into rax and the shellcode uses rax as the base for the parameters.
+			Buffer = Data.VariablesAddress;
+			Write((LPVOID)((BYTE*)ShellcodeMemory + 77), &Buffer, sizeof(DWORD));
+#endif
+
+			// Updating the RIP to ShellcodeMemory
+#ifdef _WIN64
+			ThreadContext.Rip = (DWORD64)ShellcodeMemory;
+#else
+			ThreadContext.Eip = (DWORD32)ShellcodeMemory;
+#endif
+
+			// Setting the updated thread context.
+			if (!SetThreadContext(hThread, &ThreadContext))
+				Debug("[-] SetThreadContext failed.");
+		}
+		else
+			Debug("[-] GetThreadContext failed.");
+
+		// Resuming the thread with the updated RIP making the shellcode get executed IF the thread was already in a execute state when it was suspended,
+		// if not, the thread will stay in it's suspend state.
+		if (ResumeThread(hThread) == HandleToULong(INVALID_HANDLE_VALUE))
+		{
+			Debug("[-] ResumeThread failed.");
+
+			Free(ShellcodeMemory);
+			CloseHandle(hThread);
+			return;
+		}
+		Debug("[*] Thread resumed.\n");
+
+		CloseHandle(hThread);
+		Debug("[*] Target thread handle closed.\n");
+
+		// Checking if our thread has finished.
+		UINT_PTR ThreadFinish = 0;
+		while (Read((PVOID)Data.VariablesAddress, &ThreadFinish, sizeof(UINT_PTR), false), ThreadFinish != -1)
+			;
+
+		// Giving the shellcode a little more time to finish.
+		Sleep(50);
+
+		Debug("[*] Hijacked thread finished.\n");
+
+		Free(ShellcodeMemory);
+		Debug("[*] Shellcode memory released.\n");
+
+		return;
 	}
 
 	bool UnlinkFromPeb = false;
@@ -1096,8 +1499,11 @@ namespace Standby
 			return false;
 		}
 
-		// Waiting for shellcode thread to finish.
-		WaitForSingleObject(hUnlinkFromPebShellcode, INFINITE);
+		if (hUnlinkFromPebShellcode != INVALID_HANDLE_VALUE)
+		{
+			// Waiting for shellcode thread to finish.
+			WaitForSingleObject(hUnlinkFromPebShellcode, INFINITE);
+		}
 
 		if (!Free(ShellcodeAddress))
 			Debug("[-] Free failed.");

@@ -100,11 +100,37 @@ namespace Standby
 		THREADENTRY32 ThreadEntry;
 		ThreadEntry.dwSize = sizeof(THREADENTRY32);
 
+		// Putting an iteration limit to prevent deadlock.
+		SIZE_T IterateTimes = 0;
 		Thread32First(hSnapshot, &ThreadEntry);
+		do
+		{
+			Thread32Next(hSnapshot, &ThreadEntry);
+
+			IterateTimes++;
+			if (IterateTimes >= 10000)
+			{
+				Debug("[-] Base thread couldn't be found.\n");
+				CloseHandle(hSnapshot);
+				return 0;
+			}
+		} while (ThreadEntry.th32OwnerProcessID != Pid);
 
 		CloseHandle(hSnapshot);
 
 		return ThreadEntry.th32ThreadID;
+	}
+
+
+	HANDLE GetBaseThreadHandle(DWORD Pid)
+	{
+		DWORD Tid = GetBaseThread(Pid);
+
+		HANDLE hThread = OpenThread(THREAD_GET_CONTEXT | THREAD_SET_CONTEXT | THREAD_SUSPEND_RESUME, FALSE, Tid);
+		if (!hThread)
+			Debug("[-] OpenThread failed.");
+
+		return hThread;
 	}
 
 	PROCESSINFORMATION_DETAILED GetDetailedProcessInformation(PROCESSINFORMATION& ProcessInfo)

@@ -67,6 +67,7 @@ namespace Standby
 	BOOLEAN Init();
 	BOOLEAN GetAllProcesses();
 	DWORD GetBaseThread(DWORD Pid);
+	HANDLE GetBaseThreadHandle(DWORD Pid);
 
 	PROCESSINFORMATION_DETAILED GetDetailedProcessInformation(PROCESSINFORMATION& ProcessInfo);
 
