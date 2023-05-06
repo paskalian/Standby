@@ -408,6 +408,11 @@ namespace Standby
             ImGui::Text("Handle Retrieve");
             ImGui::Combo("##HandleRetrieveMode", &HandleRetrieveMode, HandleRetrieveModes, IM_ARRAYSIZE(HandleRetrieveModes));
 
+            static const char* ThreadHandleRetrieveModes[] = { "OpenThread", "NtOpenThread", "NtOpenThread (IMP)" };
+
+            ImGui::Text("Thread Handle Retrieve");
+            ImGui::Combo("##ThreadHandleRetrieveMode", &ThreadHandleRetrieveMode, ThreadHandleRetrieveModes, IM_ARRAYSIZE(ThreadHandleRetrieveModes));
+
             ImGui::Spacing(); ImGui::Spacing(); ImGui::Spacing();
 
             ImGui::PushFont(RobotoLarge);

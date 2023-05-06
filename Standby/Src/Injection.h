@@ -25,10 +25,10 @@ extern tNtWriteVirtualMemory fNtWriteVirtualMemory;
 
 extern "C" NTSTATUS __stdcall NtWriteVirtualMemory(HANDLE ProcessHandle, PVOID BaseAddress, PVOID Buffer, ULONG NumberOfBytesToWrite, PULONG NumberOfBytesWritten);
 
-using tNtProtectVirtualMemory = NTSTATUS(__stdcall*)(HANDLE ProcessHandle, LPVOID lpAddress, SIZE_T dwSize, DWORD flNewProtect, PDWORD lpflOldProtect);
+using tNtProtectVirtualMemory = NTSTATUS(__stdcall*)(HANDLE ProcessHandle, PVOID* BaseAddress, PULONG NumberOfBytesToProtect, ULONG NewAccessProtection, PULONG OldAccessProtection);
 extern tNtProtectVirtualMemory fNtProtectVirtualMemory;
 
-extern "C" NTSTATUS __stdcall NtProtectVirtualMemory(HANDLE ProcessHandle, LPVOID lpAddress, SIZE_T dwSize, DWORD flNewProtect, PDWORD lpflOldProtect);
+extern "C" NTSTATUS __stdcall NtProtectVirtualMemory(HANDLE ProcessHandle, PVOID* BaseAddress, PULONG NumberOfBytesToProtect, ULONG NewAccessProtection, PULONG OldAccessProtection);
 
 using tNtCreateThreadEx = NTSTATUS(__stdcall*)(PHANDLE hThread, ACCESS_MASK DesiredAccess, PVOID ObjectAttributes, HANDLE ProcessHandle, PVOID lpStartAddress, PVOID lpParameter, ULONG Flags, SIZE_T StackZeroBits, SIZE_T SizeOfStackCommit, SIZE_T SizeOfStackReserve, PVOID lpBytesBuffer);
 extern tNtCreateThreadEx fNtCreateThreadEx;
@@ -166,12 +166,12 @@ namespace Standby
 	// REMOTE THREAD
 	extern int RemoteThreadMode;
 
-	HANDLE RemoteThread(LPTHREAD_START_ROUTINE lpStartAddress, LPVOID lpParameter);
+	HANDLE RemoteThread(LPTHREAD_START_ROUTINE lpStartAddress, LPVOID lpParameter, CALLINGCONVENTION CallConvention = CALLINGCONVENTION::CC_STDCALL);
 
 	HANDLE RemoteThread_CreateRemoteThread(LPTHREAD_START_ROUTINE lpStartAddress, LPVOID lpParameter);
 	HANDLE RemoteThread_NtCreateThreadEx(LPTHREAD_START_ROUTINE lpStartAddress, LPVOID lpParameter);
 	HANDLE RemoteThread_NtCreateThreadExImp(LPTHREAD_START_ROUTINE lpStartAddress, LPVOID lpParameter);
-	HANDLE RemoteThread_ThreadHijacking(LPTHREAD_START_ROUTINE lpStartAddress, LPVOID lpParameter);
+	HANDLE RemoteThread_ThreadHijacking(LPTHREAD_START_ROUTINE lpStartAddress, LPVOID lpParameter, CALLINGCONVENTION CallConvention);
 	VOID RemoteThread_ThreadHijacking_Handle(HANDLE TargetProcess, THREADHIJACKTYPE HijackType, UINT_PTR FunctionAddress, std::vector<std::any> Arguments = {}, CALLINGCONVENTION CallConvention = CALLINGCONVENTION::CC_CDECL);
 	SIZE_T RemoteThread_ThreadHijacking_GetTypeSize(const std::any& Type, THREADSIZETYPE SizeType);
 	SIZE_T RemoteThread_ThreadHijacking_GetArgumentsSize(const std::vector<std::any>& Arguments, THREADSIZETYPE SizeType);

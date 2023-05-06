@@ -27,6 +27,7 @@ namespace Standby
 
 		static const HMODULE NtdllModule = GetModuleHandleA("NTDLL.DLL");
 		fNtOpenProcess = (tNtOpenProcess)GetProcAddress(NtdllModule, "NtOpenProcess");
+		fNtOpenThread = (tNtOpenThread)GetProcAddress(NtdllModule, "ZwOpenThread");
 		fNtQuerySystemInformation = (tNtQuerySystemInformation)GetProcAddress(NtdllModule, "NtQuerySystemInformation");
 		fNtQueryObject = (tNtQueryObject)GetProcAddress(NtdllModule, "NtQueryObject");
 		fNtDuplicateObject = (tNtDuplicateObject)GetProcAddress(NtdllModule, "ZwDuplicateObject");
@@ -126,9 +127,10 @@ namespace Standby
 	{
 		DWORD Tid = GetBaseThread(Pid);
 
-		HANDLE hThread = OpenThread(THREAD_GET_CONTEXT | THREAD_SET_CONTEXT | THREAD_SUSPEND_RESUME, FALSE, Tid);
+		HANDLE hThread = ThreadHandleRetrieve(THREAD_GET_CONTEXT | THREAD_SET_CONTEXT | THREAD_SUSPEND_RESUME, Tid);
 		if (!hThread)
-			Debug("[-] OpenThread failed.");
+			Debug("[-] Thread handle couldn't be retrieved.");
+		Debug("[*] Thread handle retrieved successfully.");
 
 		return hThread;
 	}

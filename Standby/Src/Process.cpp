@@ -5,9 +5,14 @@
 #define HANDLE_NTOPENPROCESSIMP 2
 #define HANDLE_HANDLEHIJACK 3
 
+#define THREADHANDLE_OPENTHREAD 0
+#define THREADHANDLE_NTOPENTHREAD 1
+#define THREADHANDLE_NTOPENTHREADIMP 2
+
 #define HANDLE_TYPE_PROCESS 7
 
 tNtOpenProcess fNtOpenProcess = nullptr;
+tNtOpenThread fNtOpenThread = nullptr;
 tNtQuerySystemInformation fNtQuerySystemInformation = nullptr;
 tNtQueryObject fNtQueryObject = nullptr;
 tNtDuplicateObject fNtDuplicateObject = nullptr;
@@ -72,7 +77,7 @@ namespace Standby
 		NTSTATUS Status = fNtOpenProcess(&ProcessHandle, PROCESS_VM_READ | PROCESS_VM_WRITE | PROCESS_VM_OPERATION | PROCESS_QUERY_INFORMATION | PROCESS_CREATE_THREAD, &ObjAttr, &ClientId);
 		if (!NT_SUCCESS(Status))
 		{
-			Debug("NtOpenProcess failed.");
+			Debug("Handle couldn't be retrieved, NtOpenProcess.");
 			return false;
 		}
 
@@ -92,7 +97,7 @@ namespace Standby
 		NTSTATUS Status = NtOpenProcess(&ProcessHandle, PROCESS_VM_READ | PROCESS_VM_WRITE | PROCESS_VM_OPERATION | PROCESS_QUERY_INFORMATION | PROCESS_CREATE_THREAD, &ObjAttr, &ClientId);
 		if (!NT_SUCCESS(Status))
 		{
-			Debug("NtOpenProcessImp failed.");
+			Debug("Handle couldn't be retrieved, NtOpenProcessImp");
 			return false;
 		}
 
@@ -219,5 +224,79 @@ namespace Standby
 			Debug("[-] CloseServiceHandle for SvcManagerHandle failed.");
 
 		return SvcPid;
+	}
+
+	int ThreadHandleRetrieveMode = THREADHANDLE_OPENTHREAD;
+
+	HANDLE ThreadHandleRetrieve(DWORD dwDesiredAccess, DWORD dwThreadId)
+	{
+		Debug("[*] Getting thread handle.");
+
+		switch (ThreadHandleRetrieveMode)
+		{
+		case THREADHANDLE_OPENTHREAD:
+			return ThreadHandleRetrieve_OpenThread(dwDesiredAccess, dwThreadId);
+		case THREADHANDLE_NTOPENTHREAD:
+			return ThreadHandleRetrieve_NtOpenThread(dwDesiredAccess, dwThreadId);
+		case THREADHANDLE_NTOPENTHREADIMP:
+			return ThreadHandleRetrieve_NtOpenThreadImp(dwDesiredAccess, dwThreadId);
+		}
+
+		return NULL;
+	}
+
+	HANDLE ThreadHandleRetrieve_OpenThread(DWORD dwDesiredAccess, DWORD dwThreadId)
+	{
+		Debug("[*] Retrieving thread handle through OpenThread.");
+
+		HANDLE ThreadHandle = OpenThread(dwDesiredAccess, FALSE, dwThreadId);
+		if (!ThreadHandle)
+			Debug("[-] Thread handle couldn't be retrieved, OpenThread.");
+
+		return ThreadHandle;
+	}
+
+	HANDLE ThreadHandleRetrieve_NtOpenThread(DWORD dwDesiredAccess, DWORD dwThreadId)
+	{
+		Debug("[*] Retrieving thread handle through NtOpenThread.");
+
+		HANDLE ThreadHandle = NULL;
+
+		OBJECT_ATTRIBUTES ObjAttrib = {};
+#ifndef _WIN64
+		ObjAttrib.Length = 24;
+#endif
+
+		CLIENT_ID ClientId = {};
+		ClientId.UniqueProcess = (PVOID)GetProcessId(ProcessHandle);
+		ClientId.UniqueThread = (PVOID)dwThreadId;
+
+		NTSTATUS Status = fNtOpenThread(&ThreadHandle, dwDesiredAccess, &ObjAttrib, &ClientId);
+		if (!NT_SUCCESS(Status))
+			Debug("[-] Thread handle couldn't be retrieved, NtOpenThread");
+
+		return ThreadHandle;
+	}
+
+	HANDLE ThreadHandleRetrieve_NtOpenThreadImp(DWORD dwDesiredAccess, DWORD dwThreadId)
+	{
+		Debug("[*] Retrieving thread handle through NtOpenThreadImp.");
+
+		HANDLE ThreadHandle = NULL;
+
+		OBJECT_ATTRIBUTES ObjAttrib = {};
+#ifndef _WIN64
+		ObjAttrib.Length = 24;
+#endif
+
+		CLIENT_ID ClientId = {};
+		ClientId.UniqueProcess = (PVOID)GetProcessId(ProcessHandle);
+		ClientId.UniqueThread = (PVOID)dwThreadId;
+
+		NTSTATUS Status = NtOpenThread(&ThreadHandle, dwDesiredAccess, &ObjAttrib, &ClientId);
+		if (!NT_SUCCESS(Status))
+			Debug("[-] Thread handle couldn't be retrieved, NtOpenThread");
+
+		return ThreadHandle;
 	}
 }

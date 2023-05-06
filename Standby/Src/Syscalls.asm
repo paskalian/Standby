@@ -14,6 +14,19 @@ SYSCALL_DEFINED:
  
 NtOpenProcess endp
 
+NtOpenThread proc
+ 
+	mov r10, rcx
+	mov eax, 137h
+	test byte ptr [7FFE0308h], 1 ; KUSER_SHARED_DATA.SystemCall
+	jnz short SYSCALL_DEFINED
+	syscall
+	ret
+SYSCALL_DEFINED:
+	int 2Eh
+ 
+NtOpenThread endp
+
 NtAllocateVirtualMemory proc
  
 	mov r10, rcx

@@ -12,6 +12,16 @@ __declspec(naked) NTSTATUS __stdcall NtOpenProcess(PHANDLE ProcessHandle, ACCESS
 	}
 }
 
+__declspec(naked) NTSTATUS __stdcall NtOpenThread(PHANDLE ThreadHandle, ACCESS_MASK DesiredAccess, POBJECT_ATTRIBUTES ObjectAttributes, PCLIENT_ID ClientId)
+{
+	__asm
+	{
+		mov eax, 137h
+		call dword ptr fs:[0C0h]
+		retn 16
+	}
+}
+
 __declspec(naked) NTSTATUS __stdcall NtAllocateVirtualMemory(HANDLE ProcessHandle, PVOID* BaseAddress, ULONG_PTR ZeroBits, PSIZE_T RegionSize, ULONG AllocationType, ULONG Protect)
 {
 	__asm
@@ -52,7 +62,7 @@ __declspec(naked) NTSTATUS __stdcall NtWriteVirtualMemory(HANDLE ProcessHandle, 
 	}
 }
 
-__declspec(naked) NTSTATUS __stdcall NtProtectVirtualMemory(HANDLE ProcessHandle, LPVOID lpAddress, SIZE_T dwSize, DWORD flNewProtect, PDWORD lpflOldProtect)
+__declspec(naked) NTSTATUS __stdcall NtProtectVirtualMemory(HANDLE ProcessHandle, PVOID* BaseAddress, PULONG NumberOfBytesToProtect, ULONG NewAccessProtection, PULONG OldAccessProtection)
 {
 	__asm
 	{
