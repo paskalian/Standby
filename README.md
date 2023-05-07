@@ -34,7 +34,7 @@ By clicking on configure you will be granted with a configuration window which y
 
 ### Process Selection
 
-By clicking on 'No Process Selected' you will be granted with a process selection window which you can select your target process from. After you select your process you must click Select, this will open up an confirm window - since this action will open a handle to the target process- and after confirming the program will open a handle to target process using your configurations and display basic information about it.
+By clicking on 'No Process Selected' you will be granted with a process selection window which you can select your target process from. After you select your process you must click Select, this will open up an confirm window - since this action will open a handle to the target process - and after confirming the program will open a handle to target process using your configurations and display basic information about it.
 
 ### Dll Selection
 
