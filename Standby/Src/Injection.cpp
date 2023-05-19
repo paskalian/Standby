@@ -144,8 +144,8 @@ namespace Standby
 		}
 
 		// Executing the shellcode with these params.
-		HANDLE hLoadLibraryShellcode = RemoteThread((LPTHREAD_START_ROUTINE)ShellcodeAddress, pScParams, CALLINGCONVENTION::CC_CDECL);
-		if (!hLoadLibraryShellcode)
+		RTRET hLoadLibraryShellcode = RemoteThread((LPTHREAD_START_ROUTINE)ShellcodeAddress, pScParams, CALLINGCONVENTION::CC_CDECL);
+		if (!hLoadLibraryShellcode.ThreadHandle)
 		{
 			Debug("[-] RemoteThread failed.");
 
@@ -158,10 +158,10 @@ namespace Standby
 			return nullptr;
 		}
 
-		if (hLoadLibraryShellcode != INVALID_HANDLE_VALUE)
+		if (hLoadLibraryShellcode.ThreadHandle != INVALID_HANDLE_VALUE)
 		{
 			// Waiting for shellcode thread to finish.
-			WaitForSingleObject(hLoadLibraryShellcode, INFINITE);
+			WaitForSingleObject(hLoadLibraryShellcode.ThreadHandle, INFINITE);
 		}
 
 		// Since the shellcode thread doesn't have a return value we don't even bother checking for it. (Making it send back a return value is useless anyways)
@@ -174,8 +174,8 @@ namespace Standby
 		if (!Free(ShellcodeAddress))
 			Debug("[-] Free failed.");
 #else
-		HANDLE hLoadLibrary = RemoteThread((LPTHREAD_START_ROUTINE)LoadLibraryAddress, DllPath);
-		if (!hLoadLibrary)
+		RTRET hLoadLibrary = RemoteThread((LPTHREAD_START_ROUTINE)LoadLibraryAddress, DllPath);
+		if (!hLoadLibrary.ThreadHandle)
 		{
 			Debug("[-] RemoteThread failed.");
 			if (!Free(DllPath))
@@ -184,23 +184,25 @@ namespace Standby
 			return nullptr;
 		}
 
-		if (hLoadLibrary != INVALID_HANDLE_VALUE)
+		if (hLoadLibrary.ThreadHandle != INVALID_HANDLE_VALUE)
 		{
-			WaitForSingleObject(hLoadLibrary, INFINITE);
-		
-			if (!GetExitCodeThread(hLoadLibrary, (PDWORD)&ReturnModule))
-				Debug("[-] GetExitCodeThread failed.");
+			WaitForSingleObject(hLoadLibrary.ThreadHandle, INFINITE);
 
-			if (!ReturnModule)
-				Debug("[-] LoadLibraryA failed.");
+			if (!GetExitCodeThread(hLoadLibrary.ThreadHandle, (PDWORD)&ReturnModule))
+				Debug("[-] GetExitCodeThread failed.");
 		}
+		else
+			ReturnModule = (HMODULE)hLoadLibrary.ReturnVal;
+
+		if (!ReturnModule)
+			Debug("[-] LoadLibraryA failed.");
 #endif
 		// Freeing the dll path memory.
 		if (!Free(DllPath))
 			Debug("[-] Free failed.");
 
 #ifndef _WIN64
-		CloseHandle(hLoadLibrary);
+		CloseHandle(hLoadLibrary.ThreadHandle);
 #endif
 
 		return (LPVOID)ReturnModule;
@@ -305,8 +307,8 @@ namespace Standby
 		}
 
 		// Executing the shellcode with these params.
-		HANDLE hLdrLoadDllShellcode = RemoteThread((LPTHREAD_START_ROUTINE)ShellcodeAddress, pScParams, CALLINGCONVENTION::CC_CDECL);
-		if (!hLdrLoadDllShellcode)
+		RTRET hLdrLoadDllShellcode = RemoteThread((LPTHREAD_START_ROUTINE)ShellcodeAddress, pScParams, CALLINGCONVENTION::CC_CDECL);
+		if (!hLdrLoadDllShellcode.ThreadHandle)
 		{
 			Debug("[-] RemoteThread failed.");
 
@@ -319,13 +321,13 @@ namespace Standby
 			return nullptr;
 		}
 
-		if (hLdrLoadDllShellcode != INVALID_HANDLE_VALUE)
+		if (hLdrLoadDllShellcode.ThreadHandle != INVALID_HANDLE_VALUE)
 		{
 			// Waiting for shellcode thread to finish.
-			WaitForSingleObject(hLdrLoadDllShellcode, INFINITE);
+			WaitForSingleObject(hLdrLoadDllShellcode.ThreadHandle, INFINITE);
 
 			NTSTATUS ReturnStatus = 0;
-			if (!GetExitCodeThread(hLdrLoadDllShellcode, (PDWORD)&ReturnStatus))
+			if (!GetExitCodeThread(hLdrLoadDllShellcode.ThreadHandle, (PDWORD)&ReturnStatus))
 				Debug("[-] GetExitCodeThread failed.");
 
 			if (!NT_SUCCESS(ReturnStatus))
@@ -531,8 +533,8 @@ namespace Standby
 			}
 		}
 
-		HANDLE hShellcodeThread = RemoteThread((LPTHREAD_START_ROUTINE)AllocatedShellcode, (BYTE*)AllocatedShellcode + sizeof(ManualMappingShellcodeBytes), CALLINGCONVENTION::CC_CDECL);
-		if (!hShellcodeThread)
+		RTRET hShellcodeThread = RemoteThread((LPTHREAD_START_ROUTINE)AllocatedShellcode, (BYTE*)AllocatedShellcode + sizeof(ManualMappingShellcodeBytes), CALLINGCONVENTION::CC_CDECL);
+		if (!hShellcodeThread.ThreadHandle)
 		{
 			Debug("[-] RemoteThread failed.");
 
@@ -545,9 +547,9 @@ namespace Standby
 			return nullptr;
 		}
 
-		if (hShellcodeThread != INVALID_HANDLE_VALUE)
+		if (hShellcodeThread.ThreadHandle != INVALID_HANDLE_VALUE)
 		{
-			WaitForSingleObject(hShellcodeThread, INFINITE);
+			WaitForSingleObject(hShellcodeThread.ThreadHandle, INFINITE);
 		}
 
 		if (!Free(AllocatedShellcode))
@@ -992,7 +994,7 @@ namespace Standby
 	// REMOTE THREAD
 	int RemoteThreadMode = REMOTETHREAD_CREATEREMOTETHREAD;
 
-	HANDLE RemoteThread(LPTHREAD_START_ROUTINE lpStartAddress, LPVOID lpParameter, CALLINGCONVENTION CallConvention)
+	RTRET RemoteThread(LPTHREAD_START_ROUTINE lpStartAddress, LPVOID lpParameter, CALLINGCONVENTION CallConvention)
 	{
 		Debug("[*] Trying to create a remote thread in the target process.");
 
@@ -1008,46 +1010,55 @@ namespace Standby
 			return RemoteThread_ThreadHijacking(lpStartAddress, lpParameter, CallConvention);
 		}
 
-		return 0;
+		Debug("[-] Unhandled remote thread mode.");
+		return {};
 	}
 
-	HANDLE RemoteThread_CreateRemoteThread(LPTHREAD_START_ROUTINE lpStartAddress, LPVOID lpParameter)
+	RTRET RemoteThread_CreateRemoteThread(LPTHREAD_START_ROUTINE lpStartAddress, LPVOID lpParameter)
 	{
 		Debug("[*] Creating a remote thread through CreateRemoteThread.");
 
-		return CreateRemoteThread(ProcessHandle, NULL, NULL, lpStartAddress, lpParameter, NULL, NULL);
+		RTRET ReturnVal = {};
+		ReturnVal.ThreadHandle = CreateRemoteThread(ProcessHandle, NULL, NULL, lpStartAddress, lpParameter, NULL, NULL);
+
+		return ReturnVal;
 	}
 
-	HANDLE RemoteThread_NtCreateThreadEx(LPTHREAD_START_ROUTINE lpStartAddress, LPVOID lpParameter)
+	RTRET RemoteThread_NtCreateThreadEx(LPTHREAD_START_ROUTINE lpStartAddress, LPVOID lpParameter)
 	{
 		Debug("[*] Creating a remote thread through NtCreateThreadEx.");
 
-		HANDLE ThreadHandle = 0;
-		NTSTATUS Status = fNtCreateThreadEx(&ThreadHandle, THREAD_ALL_ACCESS, NULL, ProcessHandle, (LPTHREAD_START_ROUTINE)lpStartAddress, lpParameter, FALSE, NULL, NULL, NULL, NULL);
+		RTRET ReturnVal = {};
 
-		return ThreadHandle;
+		NTSTATUS Status = fNtCreateThreadEx(&ReturnVal.ThreadHandle, THREAD_ALL_ACCESS, NULL, ProcessHandle, (LPTHREAD_START_ROUTINE)lpStartAddress, lpParameter, FALSE, NULL, NULL, NULL, NULL);
+
+		return ReturnVal;
 	}
 
-	HANDLE RemoteThread_NtCreateThreadExImp(LPTHREAD_START_ROUTINE lpStartAddress, LPVOID lpParameter)
+	RTRET RemoteThread_NtCreateThreadExImp(LPTHREAD_START_ROUTINE lpStartAddress, LPVOID lpParameter)
 	{
 		Debug("[*] Creating a remote thread through NtCreateThreadExImp.");
 
-		HANDLE ThreadHandle = 0;
-		NTSTATUS Status = NtCreateThreadEx(&ThreadHandle, THREAD_ALL_ACCESS, NULL, ProcessHandle, (LPTHREAD_START_ROUTINE)lpStartAddress, lpParameter, FALSE, NULL, NULL, NULL, NULL);
+		RTRET ReturnVal = {};
 
-		return ThreadHandle;
+		NTSTATUS Status = NtCreateThreadEx(&ReturnVal.ThreadHandle, THREAD_ALL_ACCESS, NULL, ProcessHandle, (LPTHREAD_START_ROUTINE)lpStartAddress, lpParameter, FALSE, NULL, NULL, NULL, NULL);
+
+		return ReturnVal;
 	}
 
-	HANDLE RemoteThread_ThreadHijacking(LPTHREAD_START_ROUTINE lpStartAddress, LPVOID lpParameter, CALLINGCONVENTION CallConvention)
+	RTRET RemoteThread_ThreadHijacking(LPTHREAD_START_ROUTINE lpStartAddress, LPVOID lpParameter, CALLINGCONVENTION CallConvention)
 	{
 		Debug("[*] Creating a remote thread through ThreadHijacking.");
 
-		RemoteThread_ThreadHijacking_Handle(ProcessHandle, THREADHIJACKTYPE::DIRECT, (UINT_PTR)lpStartAddress, { lpParameter }, CallConvention);
+		RTRET ReturnVal = {};
 
-		return INVALID_HANDLE_VALUE;
+		ReturnVal.ThreadHandle = INVALID_HANDLE_VALUE;
+		ReturnVal.ReturnVal = RemoteThread_ThreadHijacking_Handle(ProcessHandle, THREADHIJACKTYPE::DIRECT, (UINT_PTR)lpStartAddress, { lpParameter }, CallConvention);
+
+		return ReturnVal;
 	}
 
-	VOID RemoteThread_ThreadHijacking_Handle(HANDLE TargetProcess, THREADHIJACKTYPE HijackType, UINT_PTR FunctionAddress, std::vector<std::any> Arguments, CALLINGCONVENTION CallConvention)
+	UINT_PTR RemoteThread_ThreadHijacking_Handle(HANDLE TargetProcess, THREADHIJACKTYPE HijackType, UINT_PTR FunctionAddress, std::vector<std::any> Arguments, CALLINGCONVENTION CallConvention)
 	{
 #ifdef _WIN64
 		// If the number of arguments is less than 4, we complete it to 4.
@@ -1066,15 +1077,15 @@ namespace Standby
 
 		PVOID VariablesMemory = nullptr;
 
-		const SIZE_T ArgumentsSize = RemoteThread_ThreadHijacking_GetArgumentsSize(Arguments, THREADSIZETYPE::INCLUDEEXTRA) + sizeof(DWORD64);
-		const SIZE_T OffsetToExtra = RemoteThread_ThreadHijacking_GetArgumentsSize(Arguments, THREADSIZETYPE::DEFAULT) + sizeof(DWORD64);
+		const SIZE_T ArgumentsSize = RemoteThread_ThreadHijacking_GetArgumentsSize(Arguments, THREADSIZETYPE::INCLUDEEXTRA) + sizeof(DWORD64) + sizeof(UINT_PTR);
+		const SIZE_T OffsetToExtra = RemoteThread_ThreadHijacking_GetArgumentsSize(Arguments, THREADSIZETYPE::DEFAULT) + sizeof(DWORD64) + sizeof(UINT_PTR);
 
 		// Allocating space for the argument count + arguments 
 		VariablesMemory = Alloc(NULL, ArgumentsSize, PAGE_READWRITE);
 		if (!VariablesMemory)
 		{
 			Debug("[-] Alloc failed.");
-			return;
+			return -1;
 		}
 
 		// Writing the argument count to the first UINT_PTR
@@ -1083,7 +1094,7 @@ namespace Standby
 		{
 			Debug("[-] Write failed.");
 			Free(VariablesMemory);
-			return;
+			return -1;
 		}
 	#ifndef _WIN64
 		// Writing the calling convetion to the second UINT_PTR
@@ -1091,12 +1102,12 @@ namespace Standby
 		{
 			Debug("[-] Write failed.");
 			VirtualFreeEx(TargetProcess, VariablesMemory, 0, MEM_RELEASE);
-			return;
+			return -1;
 		}
 	#endif
 
 		// Writing the other arguments, if it's a string we write them to the extra zone.
-		SIZE_T Offset = sizeof(DWORD64);
+		SIZE_T Offset = sizeof(DWORD64) + sizeof(UINT_PTR);
 		SIZE_T OffsetFromExtra = 0;
 		for (auto& ArgIdx : Arguments)
 		{
@@ -1112,7 +1123,7 @@ namespace Standby
 				{
 					Debug("[-] Write failed.");
 					Free(VariablesMemory);
-					return;
+					return -1;
 				}
 			}
 			else
@@ -1122,7 +1133,7 @@ namespace Standby
 				{
 					Debug("[-] Write failed.");
 					Free(VariablesMemory);
-					return;
+					return -1;
 				}
 			}
 
@@ -1133,6 +1144,8 @@ namespace Standby
 		Data.VariablesAddress = (UINT_PTR)VariablesMemory;
 
 		PVOID AllocatedMemory = nullptr;
+
+		UINT_PTR ReturnValue = 0;
 		switch (HijackType)
 		{
 			case THREADHIJACKTYPE::DIRECT:
@@ -1140,7 +1153,7 @@ namespace Standby
 				// If it's direct we don't need to allocate then write the function since it's already in the target process.
 				Data.FunctionAddress = FunctionAddress;
 
-				RemoteThread_ThreadHijacking_HijackThread(TargetProcess, Data);
+				ReturnValue = RemoteThread_ThreadHijacking_HijackThread(TargetProcess, Data);
 
 				break;
 			}
@@ -1152,14 +1165,14 @@ namespace Standby
 				if (!AllocatedMemory)
 				{
 					Debug("[-] Alloc failed.");
-					return;
+					return -1;
 				}
 
 				if (!Write(AllocatedMemory, FunctionBytes, FunctionBytes->size()))
 				{
 					Debug("[-] Write failed.");
 					Free(AllocatedMemory);
-					return;
+					return -1;
 				}
 			}
 			case THREADHIJACKTYPE::SELF:
@@ -1175,19 +1188,19 @@ namespace Standby
 					if (!AllocatedMemory)
 					{
 						Debug("[-] Alloc failed.");
-						return;
+						return -1;
 					}
 
 					if (!Write(AllocatedMemory, (PVOID)FunctionAndSize[0], FunctionAndSize[1]))
 					{
 						Debug("[-] Write failed.");
 						Free(AllocatedMemory);
-						return;
+						return -1;
 					}
 				}
 
 				Data.FunctionAddress = (UINT_PTR)AllocatedMemory;
-				RemoteThread_ThreadHijacking_HijackThread(TargetProcess, Data);
+				ReturnValue = RemoteThread_ThreadHijacking_HijackThread(TargetProcess, Data);
 
 				break;
 			}
@@ -1201,6 +1214,8 @@ namespace Standby
 
 		if (Data.VariablesAddress)
 			Free((LPVOID)Data.VariablesAddress);
+
+		return ReturnValue;
 	}
 
 	SIZE_T RemoteThread_ThreadHijacking_GetTypeSize(const std::any& Type, THREADSIZETYPE SizeType)
@@ -1249,30 +1264,30 @@ namespace Standby
 		return ArgumentsSize;
 	}
 
-	VOID RemoteThread_ThreadHijacking_HijackThread(HANDLE TargetProcess, THREADHIJACKDATA& Data)
+	UINT_PTR RemoteThread_ThreadHijacking_HijackThread(HANDLE TargetProcess, THREADHIJACKDATA& Data)
 	{
 #ifdef _WIN64
 		static const BYTE ShellcodeBytes[] =
 			"\x48\x83\xEC\x08\xC7\x04\x24\xCC\xCC\xCC\xCC\xC7\x44\x24\x04\xCC\xCC\xCC\xCC\x9C\x50\x51\x52\x53\x55\x56\x57\x41\x50\x41\x51\x41\x52"
-			"\x41\x53\x41\x54\x41\x55\x41\x56\x41\x57\x48\xB8\xCC\xCC\xCC\xCC\xCC\xCC\xCC\xCC\x48\x8B\x30\x48\x8B\x48\x08\x48\x8B\x50\x10\x4C\x8B"
-			"\x40\x18\x4C\x8B\x48\x20\x48\x33\xDB\x48\x89\x18\x48\x83\xFE\x04\x76\x20\x48\x83\xEE\x04\x48\x89\x30\x48\xF7\xC6\x01\x00\x00\x00\x74"
-			"\x04\x48\x83\xEC\x08\xFF\x74\xF0\x20\x48\xFF\xCE\x48\x85\xF6\x75\xF4\x48\xB8\xCC\xCC\xCC\xCC\xCC\xCC\xCC\xCC\x48\x83\xEC\x20\xFF\xD0"
-			"\x48\x83\xC4\x20\x48\xB8\xCC\xCC\xCC\xCC\xCC\xCC\xCC\xCC\x48\x8B\x30\x48\x8B\xDE\x48\x6B\xF6\x08\x48\x03\xE6\x48\xF7\xC3\x01\x00\x00"
-			"\x00\x74\x04\x48\x83\xC4\x08\x48\xC7\x00\xFF\xFF\xFF\xFF\x41\x5F\x41\x5E\x41\x5D\x41\x5C\x41\x5B\x41\x5A\x41\x59\x41\x58\x5F\x5E\x5D"
-			"\x5B\x5A\x59\x58\x9D\xC3";
+			"\x41\x53\x41\x54\x41\x55\x41\x56\x41\x57\x48\xB8\xCC\xCC\xCC\xCC\xCC\xCC\xCC\xCC\x48\x8B\x30\x48\x8B\x48\x10\x48\x8B\x50\x18\x4C\x8B"
+			"\x40\x20\x4C\x8B\x48\x28\x48\xC7\x00\x00\x00\x00\x00\x48\x83\xFE\x04\x76\x20\x48\x83\xEE\x04\x48\x89\x30\x48\xF7\xC6\x01\x00\x00\x00"
+			"\x74\x04\x48\x83\xEC\x08\xFF\x74\xF0\x28\x48\xFF\xCE\x48\x85\xF6\x75\xF4\x48\xB8\xCC\xCC\xCC\xCC\xCC\xCC\xCC\xCC\x48\x83\xEC\x20\xFF"
+			"\xD0\x48\x8B\xD0\x48\x83\xC4\x20\x48\xB8\xCC\xCC\xCC\xCC\xCC\xCC\xCC\xCC\x48\x8B\x30\x48\x8B\xDE\x48\x6B\xF6\x08\x48\x03\xE6\x48\xF7"
+			"\xC3\x01\x00\x00\x00\x74\x04\x48\x83\xC4\x08\x48\xC7\x00\xFF\xFF\xFF\xFF\x48\x89\x50\x08\x41\x5F\x41\x5E\x41\x5D\x41\x5C\x41\x5B\x41"
+			"\x5A\x41\x59\x41\x58\x5F\x5E\x5D\x5B\x5A\x59\x58\x9D\xC3";
 #else
 		static const BYTE ShellcodeBytes[] =
-			"\x83\xEC\x04\xC7\x04\x24\xCC\xCC\xCC\xCC\x9C\x60\xB8\xCC\xCC\xCC\xCC\x8B\x30\x8B\x58\x04\x83\xFB\x02\x74\x0B\xFF\x74\xB0\x04\x4E\x85"
-			"\xF6\x75\xF7\xEB\x1F\x8B\x48\x08\x8B\x50\x0C\xC7\x00\x00\x00\x00\x00\x83\xFE\x02\x76\x0E\x83\xEE\x02\x89\x30\xFF\x74\xB0\x0C\x4E\x85"
-			"\xF6\x75\xF7\xB8\xCC\xCC\xCC\xCC\xFF\xD0\xB8\xCC\xCC\xCC\xCC\x8B\x30\x8B\x58\x04\x85\xDB\x75\x05\x6B\xF6\x04\x03\xE6\xC7\x00\xFF\xFF"
-			"\xFF\xFF\x61\x9D\xC3";
+			"\x83\xEC\x04\xC7\x04\x24\xCC\xCC\xCC\xCC\x9C\x60\xB8\xCC\xCC\xCC\xCC\x8B\x30\x8B\x58\x04\x83\xFB\x02\x74\x0B\xFF\x74\xB0\x08\x4E\x85"
+			"\xF6\x75\xF7\xEB\x1F\x8B\x48\x0C\x8B\x50\x10\xC7\x00\x00\x00\x00\x00\x83\xFE\x02\x76\x0E\x83\xEE\x02\x89\x30\xFF\x74\xB0\x10\x4E\x85"
+			"\xF6\x75\xF7\xB8\xCC\xCC\xCC\xCC\xFF\xD0\x8B\xD0\xB8\xCC\xCC\xCC\xCC\x8B\x30\x8B\x58\x04\x85\xDB\x75\x05\x6B\xF6\x04\x03\xE6\xC7\x00"
+			"\xFF\xFF\xFF\xFF\x89\x50\x08\x61\x9D\xC3";
 #endif
 
 		const PVOID ShellcodeMemory = Alloc(NULL, sizeof(ShellcodeBytes), PAGE_EXECUTE_READWRITE);
 		if (!ShellcodeMemory)
 		{
 			Debug("[-] Alloc failed.");
-			return;
+			return -1;
 		}
 
 		if (!Write(ShellcodeMemory, ShellcodeBytes, sizeof(ShellcodeBytes)))
@@ -1280,7 +1295,7 @@ namespace Standby
 			Debug("[-] Write failed.");
 
 			Free(ShellcodeMemory);
-			return;
+			return -1;
 		}
 
 		// Getting a handle to the base thread.
@@ -1288,7 +1303,7 @@ namespace Standby
 		if (!hThread)
 		{
 			Free(ShellcodeMemory);
-			return;
+			return -1;
 		}
 		Debug("[*] Retrieved handle for target thread.");
 
@@ -1304,7 +1319,7 @@ namespace Standby
 
 			Free(ShellcodeMemory);
 			CloseHandle(hThread);
-			return;
+			return -1;
 		}
 		Debug("[*] Thread suspended.");
 
@@ -1341,13 +1356,13 @@ namespace Standby
 			// mov rax, 0CCCCCCCCCCCCCCCCh
 			// corresponding bytes ( CC ) which gets moved into rax and the shellcode uses rax as the function address.
 			Buffer64 = Data.FunctionAddress;
-			Write((LPVOID)((BYTE*)ShellcodeMemory + 118), &Buffer64, sizeof(DWORD64));
+			Write((LPVOID)((BYTE*)ShellcodeMemory + 119), &Buffer64, sizeof(DWORD64));
 
 			// Writing the ShellcodeParams into the
 			// mov rax, 0CCCCCCCCCCCCCCCCh
 			// corresponding bytes ( CC ) which gets moved into rax and the shellcode uses rax as the base for the parameters.
 			Buffer64 = Data.VariablesAddress;
-			Write((LPVOID)((BYTE*)ShellcodeMemory + 138), &Buffer64, sizeof(DWORD64));
+			Write((LPVOID)((BYTE*)ShellcodeMemory + 142), &Buffer64, sizeof(DWORD64));
 #else
 			// We can directly write JmpBackAddr since it will be a DWORD.
 
@@ -1374,7 +1389,7 @@ namespace Standby
 			// mov eax, 0CCCCCCCCh
 			// corresponding bytes ( CC ) which gets moved into rax and the shellcode uses rax as the base for the parameters.
 			Buffer = Data.VariablesAddress;
-			Write((LPVOID)((BYTE*)ShellcodeMemory + 77), &Buffer, sizeof(DWORD));
+			Write((LPVOID)((BYTE*)ShellcodeMemory + 79), &Buffer, sizeof(DWORD));
 #endif
 
 			// Updating the RIP to ShellcodeMemory
@@ -1399,7 +1414,7 @@ namespace Standby
 
 			Free(ShellcodeMemory);
 			CloseHandle(hThread);
-			return;
+			return -1;
 		}
 		Debug("[*] Thread resumed.\n");
 
@@ -1414,12 +1429,15 @@ namespace Standby
 		// Giving the shellcode a little more time to finish.
 		Sleep(50);
 
+		UINT_PTR ReturnValue = 0;
+		ReadProcessMemory(TargetProcess, (PVOID)((UINT_PTR)Data.VariablesAddress + sizeof(DWORD64)), &ReturnValue, sizeof(UINT_PTR), NULL);
+
 		Debug("[*] Hijacked thread finished.\n");
 
 		Free(ShellcodeMemory);
 		Debug("[*] Shellcode memory released.\n");
 
-		return;
+		return ReturnValue;
 	}
 
 	bool UnlinkFromPeb = false;
@@ -1474,8 +1492,8 @@ namespace Standby
 		}
 
 		// Executing the shellcode with these params.
-		HANDLE hUnlinkFromPebShellcode = RemoteThread((LPTHREAD_START_ROUTINE)ShellcodeAddress, DllBase, CALLINGCONVENTION::CC_CDECL);
-		if (!hUnlinkFromPebShellcode)
+		RTRET hUnlinkFromPebShellcode = RemoteThread((LPTHREAD_START_ROUTINE)ShellcodeAddress, DllBase, CALLINGCONVENTION::CC_CDECL);
+		if (!hUnlinkFromPebShellcode.ThreadHandle)
 		{
 			Debug("[-] RemoteThread failed.");
 
@@ -1485,10 +1503,10 @@ namespace Standby
 			return false;
 		}
 
-		if (hUnlinkFromPebShellcode != INVALID_HANDLE_VALUE)
+		if (hUnlinkFromPebShellcode.ThreadHandle != INVALID_HANDLE_VALUE)
 		{
 			// Waiting for shellcode thread to finish.
-			WaitForSingleObject(hUnlinkFromPebShellcode, INFINITE);
+			WaitForSingleObject(hUnlinkFromPebShellcode.ThreadHandle, INFINITE);
 		}
 
 		if (!Free(ShellcodeAddress))

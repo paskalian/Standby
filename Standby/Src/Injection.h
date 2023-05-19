@@ -101,6 +101,12 @@ enum class CALLINGCONVENTION : DWORD
 	CC_FASTCALL
 };
 
+struct RTRET
+{
+	HANDLE ThreadHandle;
+	UINT_PTR ReturnVal;
+};
+
 namespace Standby
 {
 	LPVOID InjectDll();
@@ -166,16 +172,16 @@ namespace Standby
 	// REMOTE THREAD
 	extern int RemoteThreadMode;
 
-	HANDLE RemoteThread(LPTHREAD_START_ROUTINE lpStartAddress, LPVOID lpParameter, CALLINGCONVENTION CallConvention = CALLINGCONVENTION::CC_STDCALL);
+	RTRET RemoteThread(LPTHREAD_START_ROUTINE lpStartAddress, LPVOID lpParameter, CALLINGCONVENTION CallConvention = CALLINGCONVENTION::CC_STDCALL);
 
-	HANDLE RemoteThread_CreateRemoteThread(LPTHREAD_START_ROUTINE lpStartAddress, LPVOID lpParameter);
-	HANDLE RemoteThread_NtCreateThreadEx(LPTHREAD_START_ROUTINE lpStartAddress, LPVOID lpParameter);
-	HANDLE RemoteThread_NtCreateThreadExImp(LPTHREAD_START_ROUTINE lpStartAddress, LPVOID lpParameter);
-	HANDLE RemoteThread_ThreadHijacking(LPTHREAD_START_ROUTINE lpStartAddress, LPVOID lpParameter, CALLINGCONVENTION CallConvention);
-	VOID RemoteThread_ThreadHijacking_Handle(HANDLE TargetProcess, THREADHIJACKTYPE HijackType, UINT_PTR FunctionAddress, std::vector<std::any> Arguments = {}, CALLINGCONVENTION CallConvention = CALLINGCONVENTION::CC_CDECL);
+	RTRET RemoteThread_CreateRemoteThread(LPTHREAD_START_ROUTINE lpStartAddress, LPVOID lpParameter);
+	RTRET RemoteThread_NtCreateThreadEx(LPTHREAD_START_ROUTINE lpStartAddress, LPVOID lpParameter);
+	RTRET RemoteThread_NtCreateThreadExImp(LPTHREAD_START_ROUTINE lpStartAddress, LPVOID lpParameter);
+	RTRET RemoteThread_ThreadHijacking(LPTHREAD_START_ROUTINE lpStartAddress, LPVOID lpParameter, CALLINGCONVENTION CallConvention);
+	UINT_PTR RemoteThread_ThreadHijacking_Handle(HANDLE TargetProcess, THREADHIJACKTYPE HijackType, UINT_PTR FunctionAddress, std::vector<std::any> Arguments = {}, CALLINGCONVENTION CallConvention = CALLINGCONVENTION::CC_CDECL);
 	SIZE_T RemoteThread_ThreadHijacking_GetTypeSize(const std::any& Type, THREADSIZETYPE SizeType);
 	SIZE_T RemoteThread_ThreadHijacking_GetArgumentsSize(const std::vector<std::any>& Arguments, THREADSIZETYPE SizeType);
-	VOID RemoteThread_ThreadHijacking_HijackThread(HANDLE TargetProcess, THREADHIJACKDATA& Data);
+	UINT_PTR RemoteThread_ThreadHijacking_HijackThread(HANDLE TargetProcess, THREADHIJACKDATA& Data);
 
 	extern bool UnlinkFromPeb;
 	extern bool DeletePEHeader;
