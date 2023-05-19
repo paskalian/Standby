@@ -261,7 +261,7 @@ namespace Standby
 		static const LPVOID LdrLoadDllAddress = GetProcAddress(NtdllModule, "LdrLoadDll");
 
 		LdrLoadDllScParams ScParams;
-		ScParams.fLdrpLoadDll = (FLDRPLOADDLL)LdrLoadDllAddress;
+		ScParams.fLdrLoadDll = (FLDRLOADDLL)LdrLoadDllAddress;
 
 		ScParams.PathToFile = (PWCHAR)1;
 		ScParams.Flags = 0;
@@ -283,7 +283,7 @@ namespace Standby
 			return nullptr;
 		}
 
-		// Making a variable to hold a pointer to the params INSIDE the target process, so we don't have to keep writing [ ((BYTE*)ShellcodeAddress + LDRPLOADDLLSHELLCODESIZE ].
+		// Making a variable to hold a pointer to the params INSIDE the target process, so we don't have to keep writing [ ((BYTE*)ShellcodeAddress + LDRLOADDLLSHELLCODESIZE ].
 		LdrLoadDllScParams* pScParams = (LdrLoadDllScParams*)((BYTE*)ShellcodeAddress + sizeof(LdrLoadDllShellcodeBytes));
 
 		// Setting ModuleHandle to point into directly after itself, which is ReturnModule (AS IN STRUCT MEMBER, NOT THE ONE DEFINED INSIDE THIS FUNCTION)
@@ -305,8 +305,8 @@ namespace Standby
 		}
 
 		// Executing the shellcode with these params.
-		HANDLE hLdrpLoadDllShellcode = RemoteThread((LPTHREAD_START_ROUTINE)ShellcodeAddress, pScParams, CALLINGCONVENTION::CC_CDECL);
-		if (!hLdrpLoadDllShellcode)
+		HANDLE hLdrLoadDllShellcode = RemoteThread((LPTHREAD_START_ROUTINE)ShellcodeAddress, pScParams, CALLINGCONVENTION::CC_CDECL);
+		if (!hLdrLoadDllShellcode)
 		{
 			Debug("[-] RemoteThread failed.");
 
@@ -319,15 +319,18 @@ namespace Standby
 			return nullptr;
 		}
 
-		if (hLdrpLoadDllShellcode != INVALID_HANDLE_VALUE)
+		if (hLdrLoadDllShellcode != INVALID_HANDLE_VALUE)
 		{
 			// Waiting for shellcode thread to finish.
-			WaitForSingleObject(hLdrpLoadDllShellcode, INFINITE);
-		}
+			WaitForSingleObject(hLdrLoadDllShellcode, INFINITE);
 
-		NTSTATUS ReturnStatus = 0;
-		if (!GetExitCodeThread(hLdrpLoadDllShellcode, (PDWORD)&ReturnStatus))
-			Debug("[-] GetExitCodeThread failed.");
+			NTSTATUS ReturnStatus = 0;
+			if (!GetExitCodeThread(hLdrLoadDllShellcode, (PDWORD)&ReturnStatus))
+				Debug("[-] GetExitCodeThread failed.");
+
+			if (!NT_SUCCESS(ReturnStatus))
+				Debug("[-] LdrLoadDll failed.");
+		}
 
 		// Reading the module that was set by LdrLoadDll to the handle inside ModuleHandle, that pointer was directly pointing to the next member (ReturnModule - AS IN STRUCT MEMBER -) so we can just read
 		// from that member (ReturnModule - AS IN STRUCT MEMBER -) inside the target process to our actual ReturnModule (- AS IN THIS FUNCTION -) variable.
@@ -348,7 +351,7 @@ namespace Standby
 	/*
 	NTSTATUS MapDll_LdrLoadDll_Shellcode(LdrLoadDllScParams* pScParams)
 	{
-		return pScParams->fLdrpLoadDll(pScParams->PathToFile, pScParams->Flags, pScParams->ModuleFileName, pScParams->ModuleHandle);
+		return pScParams->fLdrLoadDll(pScParams->PathToFile, pScParams->Flags, pScParams->ModuleFileName, pScParams->ModuleHandle);
 	}
 	*/
 

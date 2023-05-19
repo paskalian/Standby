@@ -44,11 +44,11 @@ struct LoadLibraryScParams
 	HMODULE ReturnModule;
 };
 
-using FLDRPLOADDLL = NTSTATUS(__stdcall*)(PWCHAR PathToFile, PULONG pFlags, PUNICODE_STRING ModuleFileName, PHANDLE ModuleHandle);
+using FLDRLOADDLL = NTSTATUS(__stdcall*)(PWCHAR PathToFile, PULONG pFlags, PUNICODE_STRING ModuleFileName, PHANDLE ModuleHandle);
 
 struct LdrLoadDllScParams
 {
-	FLDRPLOADDLL fLdrpLoadDll;
+	FLDRLOADDLL fLdrLoadDll;
 
 	PWCHAR PathToFile;
 	PULONG Flags;
