@@ -976,13 +976,13 @@ namespace Standby
 
 	BOOL Protect_NtProtectVirtualMemory(LPVOID lpAddress, SIZE_T dwSize, DWORD flNewProtect, PDWORD lpflOldProtect)
 	{
-		NTSTATUS Status = fNtProtectVirtualMemory(ProcessHandle, &lpAddress, &dwSize, flNewProtect, lpflOldProtect);
+		NTSTATUS Status = fNtProtectVirtualMemory(ProcessHandle, &lpAddress, (PULONG)&dwSize, flNewProtect, lpflOldProtect);
 		return NT_SUCCESS(Status);
 	}
 
 	BOOL Protect_NtProtectVirtualMemoryImp(LPVOID lpAddress, SIZE_T dwSize, DWORD flNewProtect, PDWORD lpflOldProtect)
 	{
-		NTSTATUS Status = NtProtectVirtualMemory(ProcessHandle, &lpAddress, &dwSize, flNewProtect, lpflOldProtect);
+		NTSTATUS Status = NtProtectVirtualMemory(ProcessHandle, &lpAddress, (PULONG)&dwSize, flNewProtect, lpflOldProtect);
 		return NT_SUCCESS(Status);
 	}
 
