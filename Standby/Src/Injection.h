@@ -59,11 +59,13 @@ struct LdrLoadDllScParams
 };
 
 using FGETPROCADDRESS = UINT_PTR(__stdcall*)(HMODULE hModule, LPCSTR lpProcName);
+using FRTLADDFUNCTIONTABLE = BOOLEAN(__stdcall*)(PRUNTIME_FUNCTION FunctionTable, DWORD EntryCount, DWORD64 BaseAddress);
 
 struct ManualMappingScParams
 {
 	FLOADLIBRARYA fLoadLibraryA;
 	FGETPROCADDRESS fGetProcAddress;
+	FRTLADDFUNCTIONTABLE fRtlAddFunctionTable;
 	PIMAGE_DOS_HEADER pDosHeader;
 };
 
