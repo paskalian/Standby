@@ -59,13 +59,17 @@ struct LdrLoadDllScParams
 };
 
 using FGETPROCADDRESS = UINT_PTR(__stdcall*)(HMODULE hModule, LPCSTR lpProcName);
+#ifdef _WIN64
 using FRTLADDFUNCTIONTABLE = BOOLEAN(__stdcall*)(PRUNTIME_FUNCTION FunctionTable, DWORD EntryCount, DWORD64 BaseAddress);
+#endif
 
 struct ManualMappingScParams
 {
 	FLOADLIBRARYA fLoadLibraryA;
 	FGETPROCADDRESS fGetProcAddress;
+#ifdef _WIN64
 	FRTLADDFUNCTIONTABLE fRtlAddFunctionTable;
+#endif
 	PIMAGE_DOS_HEADER pDosHeader;
 };
 
@@ -125,6 +129,7 @@ namespace Standby
 	HANDLE MapDll_ManualMapping_GetDllFileHandle();
 	std::vector<BYTE> MapDll_ManualMapping_ReadDllFileIntoBuffer(HANDLE hDllFile);
 	BOOLEAN MapDll_ManualMapping_ConfirmChecks(PIMAGE_DOS_HEADER pDosHeader);
+	//VOID MapDll_ManualMapping_Shellcode(ManualMappingScParams* pScParams);
 
 	// ALLOCATION MODE
 	extern int AllocMode;
