@@ -525,26 +525,10 @@ namespace Standby
 		{
 			PIMAGE_SECTION_HEADER pIdxSection = &IMAGE_FIRST_SECTION(pNtHeaders)[i];
 
-			DWORD WriteSize = pIdxSection->SizeOfRawData;
-			if (WriteSize == 0)
-			{
-				if (pIdxSection->Characteristics & IMAGE_SCN_CNT_INITIALIZED_DATA)
-					WriteSize = pOptHeader->SizeOfInitializedData;
-				else if (pIdxSection->Characteristics & IMAGE_SCN_CNT_UNINITIALIZED_DATA)
-					WriteSize = pOptHeader->SizeOfUninitializedData;
-				else
-				{
-					if (!Free(PreferredDllBase))
-						Debug("[-] Free failed.");
+			if (!pIdxSection->SizeOfRawData)
+				continue;
 
-					if (!Free(AllocatedShellcode))
-						Debug("[-] Free failed.");
-
-					return nullptr;
-				}
-			}
-
-			if (!Write((BYTE*)PreferredDllBase + pIdxSection->VirtualAddress, (BYTE*)pDosHeader + pIdxSection->PointerToRawData, WriteSize))
+			if (!Write((BYTE*)PreferredDllBase + pIdxSection->VirtualAddress, (BYTE*)pDosHeader + pIdxSection->PointerToRawData, pIdxSection->SizeOfRawData))
 			{
 				Debug("[-] Write failed.");
 
@@ -671,7 +655,7 @@ namespace Standby
 
 		return true;
 	}
-	
+
 	/*
 	using TDLLENTRY = BOOL(__stdcall*)(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved);
 	VOID MapDll_ManualMapping_Shellcode(ManualMappingScParams* pScParams)
